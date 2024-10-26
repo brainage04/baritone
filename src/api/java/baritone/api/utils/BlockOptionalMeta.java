@@ -25,6 +25,7 @@ import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.LayeredRegistryAccess;
+import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.RegistryDataLoader;
 import net.minecraft.resources.ResourceKey;
@@ -42,6 +43,7 @@ import net.minecraft.server.packs.repository.ServerPacksSource;
 import net.minecraft.server.packs.resources.CloseableResourceManager;
 import net.minecraft.server.packs.resources.MultiPackResourceManager;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.tags.TagLoader;
 import net.minecraft.world.RandomSequences;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.item.Item;
@@ -229,8 +231,8 @@ public final class BlockOptionalMeta {
 
     private static synchronized List<Item> drops(Block b) {
         return drops.computeIfAbsent(b, block -> {
-            ResourceLocation lootTableLocation = block.getLootTable().location();
-            if (lootTableLocation.equals(BuiltInLootTables.EMPTY.location())) {
+            Optional<ResourceKey<LootTable>> optionalLootTableKey = block.getLootTable();
+            if (optionalLootTableKey.isEmpty()) {
                 return Collections.emptyList();
             } else {
                 List<Item> items = new ArrayList<>();
@@ -251,13 +253,13 @@ public final class BlockOptionalMeta {
     }
 
     private static List<ItemStack> getDrops(Block state, LootParams.Builder params) {
-        ResourceKey<LootTable> lv = state.getLootTable();
-        if (lv == BuiltInLootTables.EMPTY) {
+        Optional<ResourceKey<LootTable>> lv = state.getLootTable();
+        if (lv.isEmpty()) {
             return Collections.emptyList();
         } else {
             LootParams lv2 = params.withParameter(LootContextParams.BLOCK_STATE, state.defaultBlockState()).create(LootContextParamSets.BLOCK);
             ServerLevelStub lv3 = (ServerLevelStub) lv2.getLevel();
-            LootTable lv4 = lv3.holder().getLootTable(lv);
+            LootTable lv4 = lv3.holder().getLootTable(lv.get());
             return((ILootTable) lv4).invokeGetRandomItems(new LootContext.Builder(lv2).withOptionalRandomSeed(1).create(null));
         }
     }
@@ -307,39 +309,16 @@ public final class BlockOptionalMeta {
         public static CompletableFuture<RegistryAccess> load() {
             PackRepository packRepository = Minecraft.getInstance().getResourcePackRepository();
             CloseableResourceManager closeableResourceManager = new MultiPackResourceManager(PackType.SERVER_DATA, packRepository.openAllSelected());
-            LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess = loadAndReplaceLayer(
-                closeableResourceManager, RegistryLayer.createRegistryAccess(), RegistryLayer.WORLDGEN, RegistryDataLoader.WORLDGEN_REGISTRIES
+            LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess = RegistryLayer.createRegistryAccess();
+            List<Registry.PendingTags<?>> pendingTags = TagLoader.loadTagsForExistingRegistries(
+                closeableResourceManager, layeredRegistryAccess.getLayer(RegistryLayer.STATIC)
             );
-            return ReloadableServerResources.loadResources(
-                closeableResourceManager,
+            return ReloadableServerRegistries.reload(
                 layeredRegistryAccess,
-                WorldDataConfiguration.DEFAULT.enabledFeatures(),
-                Commands.CommandSelection.INTEGRATED,
-                2,
-                Runnable::run,
+                pendingTags,
+                closeableResourceManager,
                 Minecraft.getInstance()
-            ).thenApply(reloadableServerResources -> reloadableServerResources.fullRegistries().get());
+            ).thenApply(r -> r.layers().compositeAccess());
         }
-
-        private static LayeredRegistryAccess<RegistryLayer> loadAndReplaceLayer(
-            ResourceManager resourceManager,
-            LayeredRegistryAccess<RegistryLayer> registryAccess,
-            RegistryLayer registryLayer,
-            List<RegistryDataLoader.RegistryData<?>> registryData
-        ) {
-            RegistryAccess.Frozen frozen = loadLayer(resourceManager, registryAccess, registryLayer, registryData);
-            return registryAccess.replaceFrom(registryLayer, frozen);
-        }
-
-        private static RegistryAccess.Frozen loadLayer(
-            ResourceManager resourceManager,
-            LayeredRegistryAccess<RegistryLayer> registryAccess,
-            RegistryLayer registryLayer,
-            List<RegistryDataLoader.RegistryData<?>> registryData
-        ) {
-            RegistryAccess.Frozen frozen = registryAccess.getAccessForLoading(registryLayer);
-            return RegistryDataLoader.load(resourceManager, frozen, registryData);
-        }
-
     }
 }

@@ -20,11 +20,12 @@ package baritone.utils;
 import baritone.Baritone;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
-import net.minecraft.world.item.TieredItem;
+import net.minecraft.world.item.component.Tool;
 import net.minecraft.world.item.enchantment.*;
 import net.minecraft.world.item.enchantment.effects.EnchantmentAttributeEffect;
 import net.minecraft.world.level.block.Block;
@@ -87,12 +88,9 @@ public class ToolSet {
      * @return values from 0 up
      */
     private int getMaterialCost(ItemStack itemStack) {
-        if (itemStack.getItem() instanceof TieredItem) {
-            TieredItem tool = (TieredItem) itemStack.getItem();
-            return (int) tool.getTier().getAttackDamageBonus();
-        } else {
-            return -1;
-        }
+        Tool toolComponent = itemStack.get(DataComponents.TOOL);
+        if (toolComponent == null) return -1;
+        return toolComponent.damagePerBlock(); // todo: i have no idea what "material cost" means anymore
     }
 
     public boolean hasSilkTouch(ItemStack stack) {
