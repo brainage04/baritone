@@ -657,13 +657,6 @@ public final class Settings {
     public final Setting<Boolean> logAsToast = new Setting<>(false);
 
     /**
-     * The time of how long the message in the pop-up will display
-     * <p>
-     * If below 1000L (1sec), it's better to disable this
-     */
-    public final Setting<Long> toastTimer = new Setting<>(5000L);
-
-    /**
      * Print all the debug messages to chat
      */
     public final Setting<Boolean> chatDebug = new Setting<>(false);

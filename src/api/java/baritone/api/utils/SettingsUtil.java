@@ -21,6 +21,7 @@ import baritone.api.BaritoneAPI;
 import baritone.api.Settings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -241,8 +242,8 @@ public class SettingsUtil {
                 BlockUtils::blockToString
         ),
         ITEM(
-                Item.class,
-                str -> BuiltInRegistries.ITEM.get(ResourceLocation.parse(str.trim())), // TODO this now returns AIR on failure instead of null, is that an issue?
+            Item.class,
+                str -> BuiltInRegistries.ITEM.get(ResourceLocation.parse(str.trim())).map(Holder.Reference::value).orElse(null),
                 item -> BuiltInRegistries.ITEM.getKey(item).toString()
         ),
         LIST() {

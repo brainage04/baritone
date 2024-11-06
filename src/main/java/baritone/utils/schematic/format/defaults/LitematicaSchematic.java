@@ -20,12 +20,14 @@ package baritone.utils.schematic.format.defaults;
 import baritone.api.schematic.CompositeSchematic;
 import baritone.api.schematic.IStaticSchematic;
 import baritone.utils.schematic.StaticSchematic;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 import org.apache.commons.lang3.Validate;
@@ -81,8 +83,14 @@ public final class LitematicaSchematic extends CompositeSchematic implements ISt
         BlockState[] blockList = new BlockState[blockStatePalette.size()];
 
         for (int i = 0; i < blockStatePalette.size(); i++) {
-            Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse((((CompoundTag) blockStatePalette.get(i)).getString("Name"))));
-            CompoundTag properties = ((CompoundTag) blockStatePalette.get(i)).getCompound("Properties");
+            CompoundTag tag = (CompoundTag) blockStatePalette.get(i);
+            ResourceLocation blockKey = ResourceLocation.tryParse(tag.getString("Name"));
+            Block block = blockKey == null
+                ? Blocks.AIR
+                : BuiltInRegistries.BLOCK.get(blockKey)
+                    .map(Holder.Reference::value)
+                    .orElse(Blocks.AIR);
+            CompoundTag properties = tag.getCompound("Properties");
 
             blockList[i] = getBlockState(block, properties);
         }
