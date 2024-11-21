@@ -37,6 +37,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.VanillaPackResources;
+import net.minecraft.server.packs.repository.BuiltInPackSource;
+import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackRepository;
 import net.minecraft.server.packs.repository.ServerPacksSource;
 import net.minecraft.server.packs.resources.CloseableResourceManager;
@@ -44,6 +46,7 @@ import net.minecraft.server.packs.resources.MultiPackResourceManager;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.RandomSequences;
 import net.minecraft.world.flag.FeatureFlagSet;
+import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -306,14 +309,17 @@ public final class BlockOptionalMeta {
 
         public static CompletableFuture<RegistryAccess> load() {
             PackRepository packRepository = Minecraft.getInstance().getResourcePackRepository();
-            CloseableResourceManager closeableResourceManager = new MultiPackResourceManager(PackType.SERVER_DATA, packRepository.openAllSelected());
+            CloseableResourceManager closeableResourceManager = new MultiPackResourceManager(
+                PackType.SERVER_DATA,
+                List.of(packRepository.getPack(BuiltInPackSource.VANILLA_ID).open())
+            );
             LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess = loadAndReplaceLayer(
                 closeableResourceManager, RegistryLayer.createRegistryAccess(), RegistryLayer.WORLDGEN, RegistryDataLoader.WORLDGEN_REGISTRIES
             );
             return ReloadableServerResources.loadResources(
                 closeableResourceManager,
                 layeredRegistryAccess,
-                WorldDataConfiguration.DEFAULT.enabledFeatures(),
+                FeatureFlags.VANILLA_SET,
                 Commands.CommandSelection.INTEGRATED,
                 2,
                 Runnable::run,
