@@ -29,7 +29,7 @@ public class PlayerMovementInput extends ClientInput {
     }
 
     @Override
-    public void tick(boolean p_225607_1_, float f) {
+    public void tick() {
         this.leftImpulse = 0.0F;
         this.forwardImpulse = 0.0F;
         boolean jumping = handler.isInputForcedDown(Input.JUMP); // oppa gangnam style
