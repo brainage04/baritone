@@ -21,28 +21,23 @@ import baritone.api.utils.accessor.IItemStack;
 import baritone.api.utils.accessor.ILootTable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.commands.Commands;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.LayeredRegistryAccess;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.RegistryDataLoader;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.RegistryLayer;
 import net.minecraft.server.ReloadableServerRegistries;
-import net.minecraft.server.ReloadableServerResources;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.VanillaPackResources;
-import net.minecraft.server.packs.repository.PackRepository;
 import net.minecraft.server.packs.repository.ServerPacksSource;
 import net.minecraft.server.packs.resources.CloseableResourceManager;
 import net.minecraft.server.packs.resources.MultiPackResourceManager;
-import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.TagLoader;
 import net.minecraft.world.RandomSequences;
 import net.minecraft.world.flag.FeatureFlagSet;
@@ -51,14 +46,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.CustomSpawner;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.ServerLevelData;
-import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -307,11 +300,26 @@ public final class BlockOptionalMeta {
         }
 
         public static CompletableFuture<RegistryAccess> load() {
-            PackRepository packRepository = Minecraft.getInstance().getResourcePackRepository();
-            CloseableResourceManager closeableResourceManager = new MultiPackResourceManager(PackType.SERVER_DATA, packRepository.openAllSelected());
-            LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess = RegistryLayer.createRegistryAccess();
+            // Simplified from {@link net.minecraft.server.WorldLoader#load()}
+            CloseableResourceManager closeableResourceManager = new MultiPackResourceManager(
+                PackType.SERVER_DATA,
+                List.of(ServerPacksSource.createVanillaPackSource())
+            );
+            LayeredRegistryAccess<RegistryLayer> baseLayeredRegistry = RegistryLayer.createRegistryAccess();
             List<Registry.PendingTags<?>> pendingTags = TagLoader.loadTagsForExistingRegistries(
-                closeableResourceManager, layeredRegistryAccess.getLayer(RegistryLayer.STATIC)
+                closeableResourceManager, baseLayeredRegistry.getLayer(RegistryLayer.STATIC)
+            );
+            List<HolderLookup.RegistryLookup<?>> worldGenRegistryLookupList = TagLoader.buildUpdatedLookups(
+                baseLayeredRegistry.getAccessForLoading(RegistryLayer.WORLDGEN),
+                pendingTags
+            );
+            LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess = baseLayeredRegistry.replaceFrom(
+                RegistryLayer.WORLDGEN,
+                RegistryDataLoader.load(
+                    closeableResourceManager,
+                    worldGenRegistryLookupList,
+                    RegistryDataLoader.WORLDGEN_REGISTRIES
+                )
             );
             return ReloadableServerRegistries.reload(
                 layeredRegistryAccess,
