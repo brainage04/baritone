@@ -44,9 +44,20 @@ public class BuildCommand extends Command {
 
     @Override
     public void execute(String label, IArgConsumer args) throws CommandException {
-        File file = args.getDatatypePost(RelativeFile.INSTANCE, schematicsDir).getAbsoluteFile();
+        final File file0 = args.getDatatypePost(RelativeFile.INSTANCE, schematicsDir).getAbsoluteFile();
+        File file = file0;
         if (FilenameUtils.getExtension(file.getAbsolutePath()).isEmpty()) {
             file = new File(file.getAbsolutePath() + "." + Baritone.settings().schematicFallbackExtension.value);
+        }
+        if (!file.exists()) {
+            if (file0.exists()) {
+                throw new CommandInvalidStateException(String.format(
+                        "Cannot load %s because I do not know which schematic format"
+                                + " that is. Please rename the file to include the correct"
+                                + " file extension.",
+                        file));
+            }
+            throw new CommandInvalidStateException("Cannot find " + file);
         }
         BetterBlockPos origin = ctx.playerFeet();
         BetterBlockPos buildOrigin;
@@ -59,7 +70,7 @@ public class BuildCommand extends Command {
         }
         boolean success = baritone.getBuilderProcess().build(file.getName(), file, buildOrigin);
         if (!success) {
-            throw new CommandInvalidStateException("Couldn't load the schematic. Make sure to use the FULL file name, including the extension (e.g. blah.schematic).");
+            throw new CommandInvalidStateException("Couldn't load the schematic. Unsupported file format, wrong file extension or a bug.");
         }
         logDirect(String.format("Successfully loaded schematic for building\nOrigin: %s", buildOrigin));
     }
