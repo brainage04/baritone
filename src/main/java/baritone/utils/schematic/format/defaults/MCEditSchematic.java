@@ -19,7 +19,6 @@ package baritone.utils.schematic.format.defaults;
 
 import baritone.utils.schematic.StaticSchematic;
 import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -35,19 +34,19 @@ import net.minecraft.world.level.block.state.BlockState;
 public final class MCEditSchematic extends StaticSchematic {
 
     public MCEditSchematic(CompoundTag schematic) {
-        String type = schematic.getString("Materials");
+        String type = schematic.getString("Materials").orElseThrow();
         if (!type.equals("Alpha")) {
             throw new IllegalStateException("bad schematic " + type);
         }
-        this.x = schematic.getInt("Width");
-        this.y = schematic.getInt("Height");
-        this.z = schematic.getInt("Length");
-        byte[] blocks = schematic.getByteArray("Blocks");
+        this.x = schematic.getInt("Width").orElse(0);
+        this.y = schematic.getInt("Height").orElse(0);
+        this.z = schematic.getInt("Length").orElse(0);
+        byte[] blocks = schematic.getByteArray("Blocks").orElseThrow();
 //        byte[] metadata = schematic.getByteArray("Data");
 
         byte[] additional = null;
         if (schematic.contains("AddBlocks")) {
-            byte[] addBlocks = schematic.getByteArray("AddBlocks");
+            byte[] addBlocks = schematic.getByteArray("AddBlocks").orElseThrow();
             additional = new byte[addBlocks.length * 2];
             for (int i = 0; i < addBlocks.length; i++) {
                 additional[i * 2 + 0] = (byte) ((addBlocks[i] >> 4) & 0xF); // lower nibble

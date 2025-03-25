@@ -20,14 +20,7 @@ package baritone.utils.schematic.format.defaults;
 import baritone.utils.schematic.StaticSchematic;
 import baritone.utils.type.VarInt;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -36,6 +29,12 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * @author Brady
  * @since 12/27/2019
@@ -43,15 +42,15 @@ import net.minecraft.world.level.block.state.properties.Property;
 public final class SpongeSchematic extends StaticSchematic {
 
     public SpongeSchematic(CompoundTag nbt) {
-        this.x = nbt.getInt("Width");
-        this.y = nbt.getInt("Height");
-        this.z = nbt.getInt("Length");
+        this.x = nbt.getInt("Width").orElse(0);
+        this.y = nbt.getInt("Height").orElse(0);
+        this.z = nbt.getInt("Length").orElse(0);
         this.states = new BlockState[this.x][this.z][this.y];
 
         Int2ObjectArrayMap<BlockState> palette = new Int2ObjectArrayMap<>();
-        CompoundTag paletteTag = nbt.getCompound("Palette");
-        for (String tag : paletteTag.getAllKeys()) {
-            int index = paletteTag.getInt(tag);
+        CompoundTag paletteTag = nbt.getCompound("Palette").orElse(new CompoundTag());
+        for (String tag : paletteTag.keySet()) {
+            int index = paletteTag.getInt(tag).orElse(0);
 
             SerializedBlockState serializedState = SerializedBlockState.getFromString(tag);
             if (serializedState == null) {
@@ -67,7 +66,7 @@ public final class SpongeSchematic extends StaticSchematic {
         }
 
         // BlockData is stored as an NBT byte[], however, the actual data that is represented is a varint[]
-        byte[] rawBlockData = nbt.getByteArray("BlockData");
+        byte[] rawBlockData = nbt.getByteArray("BlockData").orElseThrow();
         int[] blockData = new int[this.x * this.y * this.z];
         int offset = 0;
         for (int i = 0; i < blockData.length; i++) {

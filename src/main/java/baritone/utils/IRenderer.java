@@ -20,15 +20,10 @@ package baritone.utils;
 import baritone.api.BaritoneAPI;
 import baritone.api.Settings;
 import baritone.utils.accessor.IEntityRenderManager;
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.CoreShaders;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.ShaderProgram;
-import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -38,8 +33,9 @@ public interface IRenderer {
 
     Tesselator tessellator = Tesselator.getInstance();
     IEntityRenderManager renderManager = (IEntityRenderManager) Minecraft.getInstance().getEntityRenderDispatcher();
-    TextureManager textureManager = Minecraft.getInstance().getTextureManager();
     Settings settings = BaritoneAPI.getSettings();
+    // todo: custom render pipeline and type so we can toggle depth test
+    RenderType lineRenderType = RenderType.LINES;
 
     float[] color = new float[]{1.0F, 1.0F, 1.0F, 255.0F};
 
@@ -52,23 +48,8 @@ public interface IRenderer {
     }
 
     static BufferBuilder startLines(Color color, float alpha, float lineWidth, boolean ignoreDepth) {
-        RenderSystem.enableBlend();
-        RenderSystem.setShader(CoreShaders.POSITION_COLOR);
-        RenderSystem.blendFuncSeparate(
-                GlStateManager.SourceFactor.SRC_ALPHA,
-                GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
-                GlStateManager.SourceFactor.ONE,
-                GlStateManager.DestFactor.ZERO
-        );
         glColor(color, alpha);
         RenderSystem.lineWidth(lineWidth);
-        RenderSystem.depthMask(false);
-        RenderSystem.disableCull();
-
-        if (ignoreDepth) {
-            RenderSystem.disableDepthTest();
-        }
-        RenderSystem.setShader(CoreShaders.RENDERTYPE_LINES);
         return tessellator.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
     }
 
@@ -79,16 +60,17 @@ public interface IRenderer {
     static void endLines(BufferBuilder bufferBuilder, boolean ignoredDepth) {
         MeshData meshData = bufferBuilder.build();
         if (meshData != null) {
-            BufferUploader.drawWithShader(meshData);
+            lineRenderType.draw(meshData);
+//            BufferUploader.drawWithShader(meshData);
         }
 
         if (ignoredDepth) {
-            RenderSystem.enableDepthTest();
+//            RenderSystem.enableDepthTest();
         }
 
-        RenderSystem.enableCull();
-        RenderSystem.depthMask(true);
-        RenderSystem.disableBlend();
+//        RenderSystem.enableCull();
+//        RenderSystem.depthMask(true);
+//        RenderSystem.disableBlend();
     }
 
     static void emitLine(BufferBuilder bufferBuilder, PoseStack stack, double x1, double y1, double z1, double x2, double y2, double z2) {

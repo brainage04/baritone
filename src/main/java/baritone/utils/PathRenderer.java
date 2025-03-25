@@ -25,7 +25,6 @@ import baritone.api.utils.IPlayerContext;
 import baritone.api.utils.interfaces.IGoalRenderPos;
 import baritone.behavior.PathingBehavior;
 import baritone.pathing.path.PathExecutor;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.blockentity.BeaconRenderer;
@@ -267,9 +266,9 @@ public final class PathRenderer implements IRenderer {
 
             if (settings.renderGoalXZBeacon.value) {
                 //TODO: check
-                textureManager.getTexture(TEXTURE_BEACON_BEAM).bind();
+//                textureManager.getTexture(TEXTURE_BEACON_BEAM).bind();
                 if (settings.renderGoalIgnoreDepth.value) {
-                    RenderSystem.disableDepthTest();
+//                    RenderSystem.disableDepthTest();
                 }
 
                 stack.pushPose(); // push
@@ -295,7 +294,7 @@ public final class PathRenderer implements IRenderer {
                 stack.popPose(); // pop
 
                 if (settings.renderGoalIgnoreDepth.value) {
-                    RenderSystem.enableDepthTest();
+//                    RenderSystem.enableDepthTest();
                 }
                 return;
             }
