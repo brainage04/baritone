@@ -111,6 +111,9 @@ allprojects {
 unimined.minecraft {
     runs.off = true
     defaultRemapJar = false
+    accessWidener {
+        accessWidener(file("src/launch/resources/baritone.accesswidener"))
+    }
 }
 
 archivesBaseName = archivesBaseName + "-common"

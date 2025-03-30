@@ -20,9 +20,15 @@ package baritone.utils;
 import baritone.api.BaritoneAPI;
 import baritone.api.Settings;
 import baritone.utils.accessor.IEntityRenderManager;
+import com.mojang.blaze3d.pipeline.BlendFunction;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.platform.DepthTestFunction;
+import com.mojang.blaze3d.platform.DestFactor;
+import com.mojang.blaze3d.platform.SourceFactor;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -34,8 +40,36 @@ public interface IRenderer {
     Tesselator tessellator = Tesselator.getInstance();
     IEntityRenderManager renderManager = (IEntityRenderManager) Minecraft.getInstance().getEntityRenderDispatcher();
     Settings settings = BaritoneAPI.getSettings();
-    // todo: custom render pipeline and type so we can toggle depth test
-    RenderType lineRenderType = RenderType.LINES;
+    RenderPipeline.Snippet BARITONE_LINES_SNIPPET = RenderPipeline.builder(RenderPipelines.LINES_SNIPPET)
+        .withBlend(new BlendFunction(
+            SourceFactor.SRC_ALPHA,
+            DestFactor.ONE_MINUS_SRC_ALPHA,
+            SourceFactor.ONE,
+            DestFactor.ZERO
+        ))
+        .withDepthWrite(false)
+        .withCull(false)
+        .buildSnippet();
+    RenderType linesWithDepthRenderType = RenderType.create(
+        "renderType/baritone_lines_with_depth",
+        256,
+        RenderPipeline.builder(BARITONE_LINES_SNIPPET)
+            .withLocation("pipelines/baritone_lines_with_depth")
+            .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
+            .build(),
+        RenderType.CompositeState.builder()
+            .createCompositeState(false)
+    );
+    RenderType linesNoDepthRenderType = RenderType.create(
+        "renderType/baritone_lines_no_depth",
+        256,
+        RenderPipeline.builder(BARITONE_LINES_SNIPPET)
+            .withLocation("pipelines/baritone_lines_no_depth")
+            .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+            .build(),
+        RenderType.CompositeState.builder()
+            .createCompositeState(false)
+    );
 
     float[] color = new float[]{1.0F, 1.0F, 1.0F, 255.0F};
 
@@ -60,17 +94,12 @@ public interface IRenderer {
     static void endLines(BufferBuilder bufferBuilder, boolean ignoredDepth) {
         MeshData meshData = bufferBuilder.build();
         if (meshData != null) {
-            lineRenderType.draw(meshData);
-//            BufferUploader.drawWithShader(meshData);
+            if (ignoredDepth) {
+                linesNoDepthRenderType.draw(meshData);
+            } else {
+                linesWithDepthRenderType.draw(meshData);
+            }
         }
-
-        if (ignoredDepth) {
-//            RenderSystem.enableDepthTest();
-        }
-
-//        RenderSystem.enableCull();
-//        RenderSystem.depthMask(true);
-//        RenderSystem.disableBlend();
     }
 
     static void emitLine(BufferBuilder bufferBuilder, PoseStack stack, double x1, double y1, double z1, double x2, double y2, double z2) {
