@@ -27,7 +27,6 @@ archivesBaseName = archivesBaseName + "-fabric"
 unimined.minecraft {
     fabric {
         loader project.fabric_version
-        accessWidener(file("../src/launch/resources/baritone.accesswidener"))
     }
 }
 

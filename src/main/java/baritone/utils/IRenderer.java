@@ -20,6 +20,7 @@ package baritone.utils;
 import baritone.api.BaritoneAPI;
 import baritone.api.Settings;
 import baritone.utils.accessor.IEntityRenderManager;
+import baritone.utils.accessor.IRenderPipelines;
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.DepthTestFunction;
@@ -40,7 +41,7 @@ public interface IRenderer {
     Tesselator tessellator = Tesselator.getInstance();
     IEntityRenderManager renderManager = (IEntityRenderManager) Minecraft.getInstance().getEntityRenderDispatcher();
     Settings settings = BaritoneAPI.getSettings();
-    RenderPipeline.Snippet BARITONE_LINES_SNIPPET = RenderPipeline.builder(RenderPipelines.LINES_SNIPPET)
+    RenderPipeline.Snippet BARITONE_LINES_SNIPPET = RenderPipeline.builder(((IRenderPipelines) new RenderPipelines()).getLinesSnippet())
         .withBlend(new BlendFunction(
             SourceFactor.SRC_ALPHA,
             DestFactor.ONE_MINUS_SRC_ALPHA,
@@ -50,25 +51,21 @@ public interface IRenderer {
         .withDepthWrite(false)
         .withCull(false)
         .buildSnippet();
-    RenderType linesWithDepthRenderType = RenderType.create(
+    RenderType linesWithDepthRenderType = BaritoneRenderType.create(
         "renderType/baritone_lines_with_depth",
         256,
         RenderPipeline.builder(BARITONE_LINES_SNIPPET)
             .withLocation("pipelines/baritone_lines_with_depth")
             .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
-            .build(),
-        RenderType.CompositeState.builder()
-            .createCompositeState(false)
+            .build()
     );
-    RenderType linesNoDepthRenderType = RenderType.create(
+    RenderType linesNoDepthRenderType = BaritoneRenderType.create(
         "renderType/baritone_lines_no_depth",
         256,
         RenderPipeline.builder(BARITONE_LINES_SNIPPET)
             .withLocation("pipelines/baritone_lines_no_depth")
             .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-            .build(),
-        RenderType.CompositeState.builder()
-            .createCompositeState(false)
+            .build()
     );
 
     float[] color = new float[]{1.0F, 1.0F, 1.0F, 255.0F};

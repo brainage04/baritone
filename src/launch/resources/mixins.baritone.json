@@ -25,6 +25,7 @@
     "MixinPalettedContainer",
     "MixinPalettedContainer$Data",
     "MixinPlayerController",
+    "MixinRenderPipelines",
     "MixinScreen",
     "MixinWorldRenderer"
   ],

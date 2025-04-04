@@ -21,8 +21,6 @@
 -dontwarn baritone.launch.BaritoneForgeModXD
 # progard doesn't like signature polymorphism
 -dontwarn java.lang.invoke.MethodHandle
-# todo: fix IRenderer accesswidener'd members
--dontwarn **
 
 # please do not change the comment below
 -keep class baritone.api.** { *; } # this is the keep api
