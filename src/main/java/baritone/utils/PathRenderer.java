@@ -29,7 +29,6 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.blockentity.BeaconRenderer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -50,9 +49,6 @@ import java.util.List;
  * @since 8/9/2018
  */
 public final class PathRenderer implements IRenderer {
-
-    private static final ResourceLocation TEXTURE_BEACON_BEAM = ResourceLocation.parse("textures/entity/beacon_beam.png");
-
 
     private PathRenderer() {}
 
@@ -265,20 +261,22 @@ public final class PathRenderer implements IRenderer {
             maxY = ctx.world().getMaxY();
 
             if (settings.renderGoalXZBeacon.value) {
-                //TODO: check
-//                textureManager.getTexture(TEXTURE_BEACON_BEAM).bind();
+                // todo: fix beacon renderer (has been broken since at least 1.20.4)
+                //  issue with outer beam rendering, probably related to matrix transforms state not matching vanilla
+                //  possible solutions:
+                //      inject hook into LevelRenderer#renderBlockEntities where the matrices have already been set up correctly
+                //      copy out and modify the vanilla beacon render code
                 if (settings.renderGoalIgnoreDepth.value) {
-//                    RenderSystem.disableDepthTest();
+
                 }
 
                 stack.pushPose(); // push
                 stack.translate(goalPos.getX() - renderPosX, -renderPosY, goalPos.getZ() - renderPosZ); // translate
 
-                //TODO: check
                 BeaconRenderer.renderBeaconBeam(
                         stack,
                         ctx.minecraft().renderBuffers().bufferSource(),
-                        TEXTURE_BEACON_BEAM,
+                        BeaconRenderer.BEAM_LOCATION,
                         settings.renderGoalAnimated.value ? partialTicks : 0,
                         1.0F,
                         settings.renderGoalAnimated.value ? ctx.world().getGameTime() : 0,
@@ -294,7 +292,7 @@ public final class PathRenderer implements IRenderer {
                 stack.popPose(); // pop
 
                 if (settings.renderGoalIgnoreDepth.value) {
-//                    RenderSystem.enableDepthTest();
+
                 }
                 return;
             }
