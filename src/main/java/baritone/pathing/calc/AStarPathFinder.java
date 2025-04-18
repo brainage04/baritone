@@ -131,7 +131,7 @@ public final class AStarPathFinder extends AbstractNodeCostSearch {
                             SettingsUtil.maybeCensor(currentNode.z),
                             actionCost));
                 }
-                // check destination after verifying it's not COST_INF -- some movements return a static IMPOSSIBLE object with COST_INF and destination being 0,0,0 to avoid allocating a new result for every failed calculation
+                // check destination after verifying it's not COST_INF -- some movements return COST_INF without adjusting the destination
                 if (moves.dynamicXZ && !worldBorder.entirelyContains(res.x, res.z)) { // see issue #218
                     continue;
                 }
