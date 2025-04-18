@@ -22,6 +22,7 @@ import baritone.api.pathing.calc.IPath;
 import baritone.api.pathing.goals.Goal;
 import baritone.api.pathing.movement.ActionCosts;
 import baritone.api.utils.BetterBlockPos;
+import baritone.api.utils.SettingsUtil;
 import baritone.pathing.calc.openset.BinaryHeapOpenSet;
 import baritone.pathing.movement.CalculationContext;
 import baritone.pathing.movement.Moves;
@@ -124,7 +125,11 @@ public final class AStarPathFinder extends AbstractNodeCostSearch {
                 if (actionCost <= 0 || Double.isNaN(actionCost)) {
                     throw new IllegalStateException(String.format(
                             "%s from %s %s %s calculated implausible cost %s",
-                            moves, currentNode.x, currentNode.y, currentNode.z, actionCost));
+                            moves,
+                            SettingsUtil.maybeCensor(currentNode.x),
+                            SettingsUtil.maybeCensor(currentNode.y),
+                            SettingsUtil.maybeCensor(currentNode.z),
+                            actionCost));
                 }
                 // check destination after verifying it's not COST_INF -- some movements return a static IMPOSSIBLE object with COST_INF and destination being 0,0,0 to avoid allocating a new result for every failed calculation
                 if (moves.dynamicXZ && !worldBorder.entirelyContains(res.x, res.z)) { // see issue #218
@@ -133,14 +138,24 @@ public final class AStarPathFinder extends AbstractNodeCostSearch {
                 if (!moves.dynamicXZ && (res.x != newX || res.z != newZ)) {
                     throw new IllegalStateException(String.format(
                             "%s from %s %s %s ended at x z %s %s instead of %s %s",
-                            moves, currentNode.x, currentNode.y, currentNode.z,
-                            res.x, res.z, newX, newZ));
+                            moves,
+                            SettingsUtil.maybeCensor(currentNode.x),
+                            SettingsUtil.maybeCensor(currentNode.y),
+                            SettingsUtil.maybeCensor(currentNode.z),
+                            SettingsUtil.maybeCensor(res.x),
+                            SettingsUtil.maybeCensor(res.z),
+                            SettingsUtil.maybeCensor(newX),
+                            SettingsUtil.maybeCensor(newZ)));
                 }
                 if (!moves.dynamicY && res.y != currentNode.y + moves.yOffset) {
                     throw new IllegalStateException(String.format(
                             "%s from %s %s %s ended at y %s instead of %s",
-                            moves, currentNode.x, currentNode.y, currentNode.z,
-                            res.y, (currentNode.y + moves.yOffset)));
+                            moves,
+                            SettingsUtil.maybeCensor(currentNode.x),
+                            SettingsUtil.maybeCensor(currentNode.y),
+                            SettingsUtil.maybeCensor(currentNode.z),
+                            SettingsUtil.maybeCensor(res.y),
+                            SettingsUtil.maybeCensor(currentNode.y + moves.yOffset)));
                 }
                 long hashCode = BetterBlockPos.longHash(res.x, res.y, res.z);
                 if (isFavoring) {
