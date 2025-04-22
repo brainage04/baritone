@@ -29,6 +29,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +76,16 @@ public final class Settings {
      * Allow Baritone to place blocks
      */
     public final Setting<Boolean> allowPlace = new Setting<>(true);
+
+    /**
+     * Allow Baritone to place blocks in fluid source blocks
+     */
+    public final Setting<Boolean> allowPlaceInFluidsSource = new Setting<>(true);
+
+    /**
+     * Allow Baritone to place blocks in flowing fluid
+     */
+    public final Setting<Boolean> allowPlaceInFluidsFlow = new Setting<>(true);
 
     /**
      * Allow Baritone to move items in your inventory to your hotbar
@@ -387,7 +400,7 @@ public final class Settings {
 
     /**
      * How many ticks between breaking a block and starting to break the next block. Default in game is 6 ticks.
-     * Values under 2 will be clamped.
+     * Values under 1 will be clamped. The delay only applies to non-instant (1-tick) breaks.
      */
     public final Setting<Integer> blockBreakSpeed = new Setting<>(6);
 
@@ -974,6 +987,11 @@ public final class Settings {
     public final Setting<Boolean> replantNetherWart = new Setting<>(false);
 
     /**
+     * Farming will scan for at most this many blocks.
+     */
+    public final Setting<Integer> farmMaxScanSize = new Setting<>(256);
+
+    /**
      * When the cache scan gives less blocks than the maximum threshold (but still above zero), scan the main world too.
      * <p>
      * Only if you have a beefy CPU and automatically mine blocks that are in cache
@@ -1085,6 +1103,28 @@ public final class Settings {
     public final Setting<Boolean> schematicOrientationZ = new Setting<>(false);
 
     /**
+     * Rotates the schematic before building it.
+     * Possible values are
+     * <ul>
+     *  <li> NONE - No rotation </li>
+     *  <li> CLOCKWISE_90 - Rotate 90° clockwise </li>
+     *  <li> CLOCKWISE_180 - Rotate 180° clockwise </li>
+     *  <li> COUNTERCLOCKWISE_90 - Rotate 270° clockwise </li>
+     * </ul>
+     */
+    public final Setting<Rotation> buildSchematicRotation = new Setting<>(Rotation.NONE);
+
+    /**
+     * Mirrors the schematic before building it.
+     * Possible values are
+     * <ul>
+     *  <li> FRONT_BACK - mirror the schematic along its local x axis </li>
+     *  <li> LEFT_RIGHT - mirror the schematic along its local z axis </li>
+     * </ul>
+     */
+    public final Setting<Mirror> buildSchematicMirror = new Setting<>(Mirror.NONE);
+
+    /**
      * The fallback used by the build command when no extension is specified. This may be useful if schematics of a
      * particular format are used often, and the user does not wish to have to specify the extension with every usage.
      */
@@ -1194,6 +1234,11 @@ public final class Settings {
      * The radius (for the GoalNear) of how close to your target position you actually have to be
      */
     public final Setting<Integer> followRadius = new Setting<>(3);
+
+    /**
+     * The maximum distance to the entity you're following
+     */
+    public final Setting<Integer> followTargetMaxDistance = new Setting<>(0);
 
     /**
      * Turn this on if your exploration filter is enormous, you don't want it to check if it's done,
