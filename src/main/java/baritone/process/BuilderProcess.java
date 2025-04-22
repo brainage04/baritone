@@ -441,7 +441,7 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
                 double z = side.getStepZ() == 0 ? 0.5 : (1 + side.getStepZ()) / 2D;
                 return new Vec3[]{new Vec3(x, 0.25, z), new Vec3(x, 0.75, z)};
             default: // null
-                throw new IllegalStateException();
+                throw new IllegalStateException("Unexpected side " + side);
         }
     }
 
@@ -996,6 +996,22 @@ public final class BuilderProcess extends BaritoneProcessHelper implements IBuil
     @Override
     public String displayName0() {
         return paused ? "Builder Paused" : "Building " + name;
+    }
+
+    @Override
+    public Optional<Integer> getMinLayer() {
+        if (Baritone.settings().buildInLayers.value) {
+            return Optional.of(this.layer);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<Integer> getMaxLayer() {
+        if (Baritone.settings().buildInLayers.value) {
+            return Optional.of(this.stopAtHeight);
+        }
+        return Optional.empty();
     }
 
     private List<BlockState> approxPlaceable(int size) {
