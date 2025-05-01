@@ -78,14 +78,14 @@ public interface IRenderer {
         IRenderer.color[3] = alpha;
     }
 
-    static BufferBuilder startLines(Color color, float alpha, float lineWidth, boolean ignoreDepth) {
+    static BufferBuilder startLines(Color color, float alpha, float lineWidth) {
         glColor(color, alpha);
         RenderSystem.lineWidth(lineWidth);
         return tessellator.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
     }
 
-    static BufferBuilder startLines(Color color, float lineWidth, boolean ignoreDepth) {
-        return startLines(color, .4f, lineWidth, ignoreDepth);
+    static BufferBuilder startLines(Color color, float lineWidth) {
+        return startLines(color, .4f, lineWidth);
     }
 
     static void endLines(BufferBuilder bufferBuilder, boolean ignoredDepth) {

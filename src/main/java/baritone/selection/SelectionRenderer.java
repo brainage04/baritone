@@ -29,7 +29,7 @@ public class SelectionRenderer implements IRenderer, AbstractGameEventListener {
             return;
         }
 
-        BufferBuilder bufferBuilder = IRenderer.startLines(settings.colorSelection.value, opacity, lineWidth, ignoreDepth);
+        BufferBuilder bufferBuilder = IRenderer.startLines(settings.colorSelection.value, opacity, lineWidth);
 
         for (ISelection selection : selections) {
             IRenderer.emitAABB(bufferBuilder, stack, selection.aabb(), SELECTION_BOX_EXPANSION);
