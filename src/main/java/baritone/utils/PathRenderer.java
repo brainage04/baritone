@@ -266,9 +266,7 @@ public final class PathRenderer implements IRenderer {
                 //  possible solutions:
                 //      inject hook into LevelRenderer#renderBlockEntities where the matrices have already been set up correctly
                 //      copy out and modify the vanilla beacon render code
-                if (settings.renderGoalIgnoreDepth.value) {
-
-                }
+                //  also another issue on 1.21.5 is we don't have a simple method call for editing the beacon's depth test
 
                 stack.pushPose(); // push
                 stack.translate(goalPos.getX() - renderPosX, -renderPosY, goalPos.getZ() - renderPosZ); // translate
@@ -290,10 +288,6 @@ public final class PathRenderer implements IRenderer {
                 );
 
                 stack.popPose(); // pop
-
-                if (settings.renderGoalIgnoreDepth.value) {
-
-                }
                 return;
             }
 
