@@ -189,7 +189,6 @@ public class SetCommand extends Command {
             oldValueComponent.setStyle(oldValueComponent.getStyle()
                     .withColor(ChatFormatting.GRAY)
                     .withHoverEvent(new HoverEvent.ShowText(
-
                             Component.literal("Click to set the setting back to this value")
                     ))
                     .withClickEvent(new ClickEvent.RunCommand(
