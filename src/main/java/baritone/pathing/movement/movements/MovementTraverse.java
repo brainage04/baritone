@@ -296,7 +296,7 @@ public class MovementTraverse extends Movement {
                 }
             }
             double dist1 = Math.max(Math.abs(ctx.player().position().x - (dest.getX() + 0.5D)), Math.abs(ctx.player().position().z - (dest.getZ() + 0.5D)));
-            PlaceResult p = MovementHelper.attemptToPlaceABlock(state, baritone, dest.below(), false, true);
+            PlaceResult p = MovementHelper.attemptToPlaceABlock(state, baritone, dest.below(), false, !Baritone.settings().assumeSafeWalk.value);
             if ((p == PlaceResult.READY_TO_PLACE || dist1 < 0.6) && !Baritone.settings().assumeSafeWalk.value) {
                 state.setInput(Input.SNEAK, true);
             }
@@ -311,7 +311,7 @@ public class MovementTraverse extends Movement {
                     if (dist1 > 0.83) {
                         // might need to go forward a bit
                         float yaw = RotationUtils.calcRotationFromVec3d(ctx.playerHead(), VecUtils.getBlockPosCenter(dest), ctx.playerRotations()).getYaw();
-                        if (Math.abs(state.getTarget().rotation.getYaw() - yaw) < 0.1) {
+                        if (Math.abs(state.getTarget().rotation.getYaw() - yaw) < 0.1 && !Baritone.settings().assumeSafeWalk.value) {
                             // but only if our attempted place is straight ahead
                             return state.setInput(Input.MOVE_FORWARD, true);
                         }
