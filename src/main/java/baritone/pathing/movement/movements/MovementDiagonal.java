@@ -142,7 +142,10 @@ public class MovementDiagonal extends Movement {
         // For either possible soul sand, that affects half of our walking
         if (destWalkOn.getBlock() == Blocks.SOUL_SAND) {
             multiplier += (WALK_ONE_OVER_SOUL_SAND_COST - WALK_ONE_BLOCK_COST) / 2;
-        } else if (frostWalker) {
+        } else if (destWalkOn.getBlock() == Blocks.MAGMA_BLOCK) {
+            multiplier += (SNEAK_ONE_BLOCK_COST - WALK_ONE_BLOCK_COST) / 2;
+        }
+        else if (frostWalker) {
             // frostwalker lets us walk on water without the penalty
         } else if (destWalkOn.getBlock() == Blocks.WATER) {
             multiplier += context.walkOnWaterOnePenalty * SQRT_2;
@@ -154,12 +157,15 @@ public class MovementDiagonal extends Movement {
         if (fromDownBlock == Blocks.SOUL_SAND) {
             multiplier += (WALK_ONE_OVER_SOUL_SAND_COST - WALK_ONE_BLOCK_COST) / 2;
         }
+        else if (fromDownBlock == Blocks.MAGMA_BLOCK) {
+            multiplier += (SNEAK_ONE_BLOCK_COST - WALK_ONE_BLOCK_COST) / 2;
+        }
         BlockState cuttingOver1 = context.get(x, y - 1, destZ);
-        if (cuttingOver1.getBlock() == Blocks.MAGMA_BLOCK || MovementHelper.isLava(cuttingOver1)) {
+        if (MovementHelper.isLava(cuttingOver1)) {
             return;
         }
         BlockState cuttingOver2 = context.get(destX, y - 1, z);
-        if (cuttingOver2.getBlock() == Blocks.MAGMA_BLOCK || MovementHelper.isLava(cuttingOver2)) {
+        if (MovementHelper.isLava(cuttingOver2)) {
             return;
         }
         boolean water = false;
