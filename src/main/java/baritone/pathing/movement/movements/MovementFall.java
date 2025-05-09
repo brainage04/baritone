@@ -29,6 +29,7 @@ import baritone.pathing.movement.Movement;
 import baritone.pathing.movement.MovementHelper;
 import baritone.pathing.movement.MovementState;
 import baritone.pathing.movement.MovementState.MovementTarget;
+import baritone.utils.BlockStateInterface;
 import baritone.utils.pathing.MutableMoveResult;
 import java.util.HashSet;
 import java.util.Optional;
@@ -40,6 +41,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LadderBlock;
@@ -94,6 +96,11 @@ public class MovementFall extends Movement {
         Rotation targetRotation = null;
         BlockState destState = ctx.world().getBlockState(dest);
         Block destBlock = destState.getBlock();
+
+        if (ctx.world().getBlockState(dest.below()).getBlock() == Blocks.MAGMA_BLOCK && MovementHelper.steppingOnBlocks(ctx).stream().allMatch(block -> BlockStateInterface.get(ctx, block).getBlock() instanceof AirBlock)) {
+            state.setInput(Input.SNEAK, true);
+        }
+
         boolean isWater = destState.getFluidState().getType() instanceof WaterFluid;
         if (!isWater && willPlaceBucket() && !playerFeet.equals(dest)) {
             if (!Inventory.isHotbarSlot(ctx.player().getInventory().findSlotMatchingItem(STACK_BUCKET_WATER)) || ctx.world().dimension() == Level.NETHER) {
