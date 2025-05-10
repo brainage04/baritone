@@ -97,7 +97,7 @@ public class MovementFall extends Movement {
         BlockState destState = ctx.world().getBlockState(dest);
         Block destBlock = destState.getBlock();
 
-        if (ctx.world().getBlockState(dest.below()).getBlock() == Blocks.MAGMA_BLOCK && MovementHelper.steppingOnBlocks(ctx).stream().allMatch(block -> BlockStateInterface.get(ctx, block).getBlock() instanceof AirBlock)) {
+        if (BlockStateInterface.get(ctx, dest.below()).getBlock().equals(Blocks.MAGMA_BLOCK) && MovementHelper.steppingOnBlocks(ctx).stream().allMatch(block -> BlockStateInterface.get(ctx, block).getBlock() instanceof AirBlock)) {
             state.setInput(Input.SNEAK, true);
         }
 

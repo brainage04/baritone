@@ -103,14 +103,16 @@ public class MovementParkour extends Movement {
             return; // can't jump out of water
         }
         int maxJump;
-        if (standingOn.getBlock() == Blocks.SOUL_SAND) {
+        if (standingOn.getBlock() == Blocks.MAGMA_BLOCK) {
+            maxJump = 2;
+        }
+        else if (standingOn.getBlock() == Blocks.SOUL_SAND) {
             maxJump = 2; // 1 block gap
-        } else {
-            if (context.canSprint) {
-                maxJump = 4;
-            } else {
-                maxJump = 3;
-            }
+        } else if (context.canSprint) {
+            maxJump = 4;
+        }
+        else {
+            maxJump = 3;
         }
 
         // check parkour jumps from smallest to largest for obstacles/walls and landing positions
@@ -263,6 +265,11 @@ public class MovementParkour extends Movement {
         if (dist >= 4 || ascend) {
             state.setInput(Input.SPRINT, true);
         }
+
+        if (BlockStateInterface.get(ctx, ctx.playerFeet().below()).getBlock().equals(Blocks.MAGMA_BLOCK)) {
+            state.setInput(Input.SNEAK, true);
+        }
+
         MovementHelper.moveTowards(ctx, state, dest);
         if (ctx.playerFeet().equals(dest)) {
             Block d = BlockStateInterface.getBlock(ctx, dest);

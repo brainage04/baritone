@@ -276,7 +276,7 @@ public class MovementDiagonal extends Movement {
         if (sprint()) {
             state.setInput(Input.SPRINT, true);
         }
-        state.setInput(Input.SNEAK, MovementHelper.steppingOnBlocks(ctx).stream().anyMatch(block -> BlockStateInterface.get(ctx, block).getBlock() == Blocks.MAGMA_BLOCK));
+        state.setInput(Input.SNEAK, MovementHelper.steppingOnBlocks(ctx).stream().anyMatch(block -> BlockStateInterface.get(ctx, block).getBlock().equals(Blocks.MAGMA_BLOCK)));
         MovementHelper.moveTowards(ctx, state, dest);
         return state;
     }
