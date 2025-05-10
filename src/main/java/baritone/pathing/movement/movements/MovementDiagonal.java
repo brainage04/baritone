@@ -143,7 +143,7 @@ public class MovementDiagonal extends Movement {
         // For either possible soul sand, that affects half of our walking
         if (destWalkOn.getBlock() == Blocks.SOUL_SAND) {
             multiplier += (WALK_ONE_OVER_SOUL_SAND_COST - WALK_ONE_BLOCK_COST) / 2;
-        } else if (Baritone.settings().allowSneakOnMagmaBlocks.value && destWalkOn.getBlock().equals(Blocks.MAGMA_BLOCK)) {
+        } else if (Baritone.settings().allowWalkOnMagmaBlocks.value && destWalkOn.getBlock().equals(Blocks.MAGMA_BLOCK)) {
             multiplier += (SNEAK_ONE_BLOCK_COST - WALK_ONE_BLOCK_COST) / 2;
             sneaking = true;
         }
@@ -159,16 +159,16 @@ public class MovementDiagonal extends Movement {
         if (fromDownBlock == Blocks.SOUL_SAND) {
             multiplier += (WALK_ONE_OVER_SOUL_SAND_COST - WALK_ONE_BLOCK_COST) / 2;
         }
-        else if (Baritone.settings().allowSneakOnMagmaBlocks.value && fromDownBlock.equals(Blocks.MAGMA_BLOCK)) {
+        else if (Baritone.settings().allowWalkOnMagmaBlocks.value && fromDownBlock.equals(Blocks.MAGMA_BLOCK)) {
             multiplier += (SNEAK_ONE_BLOCK_COST - WALK_ONE_BLOCK_COST) / 2;
             sneaking = true;
         }
         BlockState cuttingOver1 = context.get(x, y - 1, destZ);
-        if (MovementHelper.isLava(cuttingOver1)) {
+        if ((Baritone.settings().allowWalkOnMagmaBlocks.value && cuttingOver1.getBlock().equals(Blocks.MAGMA_BLOCK)) || MovementHelper.isLava(cuttingOver1)) {
             return;
         }
         BlockState cuttingOver2 = context.get(destX, y - 1, z);
-        if (MovementHelper.isLava(cuttingOver2)) {
+        if ((Baritone.settings().allowWalkOnMagmaBlocks.value && cuttingOver1.getBlock().equals(Blocks.MAGMA_BLOCK)) || MovementHelper.isLava(cuttingOver2)) {
             return;
         }
         boolean water = false;
@@ -279,7 +279,7 @@ public class MovementDiagonal extends Movement {
         if (sprint()) {
             state.setInput(Input.SPRINT, true);
         }
-        state.setInput(Input.SNEAK, Baritone.settings().allowSneakOnMagmaBlocks.value && MovementHelper.steppingOnBlocks(ctx).stream().anyMatch(block -> BlockStateInterface.get(ctx, block).getBlock().equals(Blocks.MAGMA_BLOCK)));
+        state.setInput(Input.SNEAK, Baritone.settings().allowWalkOnMagmaBlocks.value && MovementHelper.steppingOnBlocks(ctx).stream().anyMatch(block -> BlockStateInterface.get(ctx, block).getBlock().equals(Blocks.MAGMA_BLOCK)));
         MovementHelper.moveTowards(ctx, state, dest);
         return state;
     }

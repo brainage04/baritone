@@ -1546,7 +1546,7 @@ public final class Settings {
     /**
      * Sneak when magma blocks are under feet
      */
-    public final Setting<Boolean> allowSneakOnMagmaBlocks = new Setting<>(false);
+    public final Setting<Boolean> allowWalkOnMagmaBlocks = new Setting<>(false);
 
     /**
      * A map of lowercase setting field names to their respective setting

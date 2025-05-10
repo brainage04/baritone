@@ -79,7 +79,7 @@ public class CalculationContext {
     public double backtrackCostFavoringCoefficient;
     public double jumpPenalty;
     public final double walkOnWaterOnePenalty;
-    public final boolean allowSneakOnMagmaBlocks;
+    public final boolean allowWalkOnMagmaBlocks;
     public final BetterWorldBorder worldBorder;
 
     public final PrecomputedData precomputedData;
@@ -126,7 +126,7 @@ public class CalculationContext {
         this.backtrackCostFavoringCoefficient = Baritone.settings().backtrackCostFavoringCoefficient.value;
         this.jumpPenalty = Baritone.settings().jumpPenalty.value;
         this.walkOnWaterOnePenalty = Baritone.settings().walkOnWaterOnePenalty.value;
-        this.allowSneakOnMagmaBlocks = Baritone.settings().allowSneakOnMagmaBlocks.value;
+        this.allowWalkOnMagmaBlocks = Baritone.settings().allowWalkOnMagmaBlocks.value;
         // why cache these things here, why not let the movements just get directly from settings?
         // because if some movements are calculated one way and others are calculated another way,
         // then you get a wildly inconsistent path that isn't optimal for either scenario.

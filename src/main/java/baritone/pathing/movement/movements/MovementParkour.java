@@ -103,7 +103,7 @@ public class MovementParkour extends Movement {
             return; // can't jump out of water
         }
         int maxJump;
-        if (Baritone.settings().allowSneakOnMagmaBlocks.value && standingOn.getBlock() == Blocks.MAGMA_BLOCK) {
+        if (Baritone.settings().allowWalkOnMagmaBlocks.value && standingOn.getBlock() == Blocks.MAGMA_BLOCK) {
             maxJump = 2;
         }
         else if (standingOn.getBlock() == Blocks.SOUL_SAND) {
@@ -266,7 +266,7 @@ public class MovementParkour extends Movement {
             state.setInput(Input.SPRINT, true);
         }
 
-        if (Baritone.settings().allowSneakOnMagmaBlocks.value && BlockStateInterface.get(ctx, ctx.playerFeet().below()).getBlock().equals(Blocks.MAGMA_BLOCK)) {
+        if (Baritone.settings().allowWalkOnMagmaBlocks.value && BlockStateInterface.get(ctx, ctx.playerFeet().below()).getBlock().equals(Blocks.MAGMA_BLOCK)) {
             state.setInput(Input.SNEAK, true);
         }
 
