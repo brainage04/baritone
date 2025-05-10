@@ -118,6 +118,7 @@ public class MovementDiagonal extends Movement {
         BlockState destWalkOn;
         boolean descend = false;
         boolean frostWalker = false;
+        boolean sneaking = false;
         if (!MovementHelper.canWalkThrough(context, destX, y, destZ, destInto)) {
             ascend = true;
             if (!context.allowDiagonalAscend || !MovementHelper.canWalkThrough(context, x, y + 2, z) || !MovementHelper.canWalkOn(context, destX, y, destZ, destInto) || !MovementHelper.canWalkThrough(context, destX, y + 2, destZ)) {
@@ -142,8 +143,9 @@ public class MovementDiagonal extends Movement {
         // For either possible soul sand, that affects half of our walking
         if (destWalkOn.getBlock() == Blocks.SOUL_SAND) {
             multiplier += (WALK_ONE_OVER_SOUL_SAND_COST - WALK_ONE_BLOCK_COST) / 2;
-        } else if (destWalkOn.getBlock() == Blocks.MAGMA_BLOCK) {
+        } else if (destWalkOn.getBlock().equals(Blocks.MAGMA_BLOCK)) {
             multiplier += (SNEAK_ONE_BLOCK_COST - WALK_ONE_BLOCK_COST) / 2;
+            sneaking = true;
         }
         else if (frostWalker) {
             // frostwalker lets us walk on water without the penalty
@@ -157,8 +159,9 @@ public class MovementDiagonal extends Movement {
         if (fromDownBlock == Blocks.SOUL_SAND) {
             multiplier += (WALK_ONE_OVER_SOUL_SAND_COST - WALK_ONE_BLOCK_COST) / 2;
         }
-        else if (fromDownBlock == Blocks.MAGMA_BLOCK) {
+        else if (fromDownBlock.equals(Blocks.MAGMA_BLOCK)) {
             multiplier += (SNEAK_ONE_BLOCK_COST - WALK_ONE_BLOCK_COST) / 2;
+            sneaking = true;
         }
         BlockState cuttingOver1 = context.get(x, y - 1, destZ);
         if (MovementHelper.isLava(cuttingOver1)) {
@@ -240,7 +243,7 @@ public class MovementDiagonal extends Movement {
             }
         } else {
             // only can sprint if not edging around
-            if (context.canSprint && !water) {
+            if (context.canSprint && !water && !sneaking) {
                 // If we aren't edging around anything, and we aren't in water
                 // We can sprint =D
                 // Don't check for soul sand, since we can sprint on that too
