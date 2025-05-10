@@ -1544,6 +1544,11 @@ public final class Settings {
     public final Setting<Boolean> elytraChatSpam = new Setting<>(false);
 
     /**
+     * Sneak when magma blocks are under feet
+     */
+    public final Setting<Boolean> allowSneakOnMagmaBlocks = new Setting<>(false);
+
+    /**
      * A map of lowercase setting field names to their respective setting
      */
     public final Map<String, Setting<?>> byLowerName;
