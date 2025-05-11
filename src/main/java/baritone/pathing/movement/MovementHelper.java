@@ -658,6 +658,15 @@ public interface MovementHelper extends ActionCosts, Helper {
         )).setInput(Input.MOVE_FORWARD, true);
     }
 
+    static void alignBridge(IPlayerContext ctx, MovementState state, BlockPos dest) {
+        state.setTarget(new MovementTarget(
+                RotationUtils.calcRotationFromVec3d(VecUtils.getBlockPosCenter(dest),
+                        ctx.playerHead(),
+                        ctx.playerRotations()).withPitch(ctx.playerRotations().getPitch()),
+                false
+        )).setInput(Input.MOVE_BACK, true);
+    }
+
     /**
      * Returns whether or not the specified block is
      * water, regardless of whether or not it is flowing.
