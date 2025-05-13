@@ -25,12 +25,10 @@ import baritone.api.utils.IPlayerContext;
 import baritone.api.utils.interfaces.IGoalRenderPos;
 import baritone.behavior.PathingBehavior;
 import baritone.pathing.path.PathExecutor;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.blockentity.BeaconRenderer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -51,9 +49,6 @@ import java.util.List;
  * @since 8/9/2018
  */
 public final class PathRenderer implements IRenderer {
-
-    private static final ResourceLocation TEXTURE_BEACON_BEAM = ResourceLocation.parse("textures/entity/beacon_beam.png");
-
 
     private PathRenderer() {}
 
@@ -135,7 +130,7 @@ public final class PathRenderer implements IRenderer {
     }
 
     public static void drawPath(PoseStack stack, List<BetterBlockPos> positions, int startIndex, Color color, boolean fadeOut, int fadeStart0, int fadeEnd0, double offset) {
-        BufferBuilder bufferBuilder = IRenderer.startLines(color, settings.pathRenderLineWidthPixels.value, settings.renderPathIgnoreDepth.value);
+        BufferBuilder bufferBuilder = IRenderer.startLines(color, settings.pathRenderLineWidthPixels.value);
 
         int fadeStart = fadeStart0 + startIndex;
         int fadeEnd = fadeEnd0 + startIndex;
@@ -204,7 +199,7 @@ public final class PathRenderer implements IRenderer {
     }
 
     public static void drawManySelectionBoxes(PoseStack stack, Entity player, Collection<BlockPos> positions, Color color) {
-        BufferBuilder bufferBuilder = IRenderer.startLines(color, settings.pathRenderLineWidthPixels.value, settings.renderSelectionBoxesIgnoreDepth.value);
+        BufferBuilder bufferBuilder = IRenderer.startLines(color, settings.pathRenderLineWidthPixels.value);
 
         //BlockPos blockpos = movingObjectPositionIn.getBlockPos();
         BlockStateInterface bsi = new BlockStateInterface(BaritoneAPI.getProvider().getPrimaryBaritone().getPlayerContext()); // TODO this assumes same dimension between primary baritone and render view? is this safe?
@@ -266,20 +261,20 @@ public final class PathRenderer implements IRenderer {
             maxY = ctx.world().getMaxY();
 
             if (settings.renderGoalXZBeacon.value) {
-                //TODO: check
-                textureManager.getTexture(TEXTURE_BEACON_BEAM).bind();
-                if (settings.renderGoalIgnoreDepth.value) {
-                    RenderSystem.disableDepthTest();
-                }
+                // todo: fix beacon renderer (has been broken since at least 1.20.4)
+                //  issue with outer beam rendering, probably related to matrix transforms state not matching vanilla
+                //  possible solutions:
+                //      inject hook into LevelRenderer#renderBlockEntities where the matrices have already been set up correctly
+                //      copy out and modify the vanilla beacon render code
+                //  also another issue on 1.21.5 is we don't have a simple method call for editing the beacon's depth test
 
                 stack.pushPose(); // push
                 stack.translate(goalPos.getX() - renderPosX, -renderPosY, goalPos.getZ() - renderPosZ); // translate
 
-                //TODO: check
                 BeaconRenderer.renderBeaconBeam(
                         stack,
                         ctx.minecraft().renderBuffers().bufferSource(),
-                        TEXTURE_BEACON_BEAM,
+                        BeaconRenderer.BEAM_LOCATION,
                         settings.renderGoalAnimated.value ? partialTicks : 0,
                         1.0F,
                         settings.renderGoalAnimated.value ? ctx.world().getGameTime() : 0,
@@ -293,10 +288,6 @@ public final class PathRenderer implements IRenderer {
                 );
 
                 stack.popPose(); // pop
-
-                if (settings.renderGoalIgnoreDepth.value) {
-                    RenderSystem.enableDepthTest();
-                }
                 return;
             }
 
@@ -315,7 +306,7 @@ public final class PathRenderer implements IRenderer {
             boolean batch = Arrays.stream(((GoalComposite) goal).goals()).allMatch(IGoalRenderPos.class::isInstance);
             BufferBuilder buf = bufferBuilder;
             if (batch) {
-                buf = IRenderer.startLines(color, settings.goalRenderLineWidthPixels.value, settings.renderGoalIgnoreDepth.value);
+                buf = IRenderer.startLines(color, settings.goalRenderLineWidthPixels.value);
             }
             for (Goal g : ((GoalComposite) goal).goals()) {
                 drawGoal(buf, stack, ctx, g, partialTicks, color, !batch);
@@ -341,7 +332,7 @@ public final class PathRenderer implements IRenderer {
 
     private static void drawDankLitGoalBox(BufferBuilder bufferBuilder, PoseStack stack, Color colorIn, double minX, double maxX, double minZ, double maxZ, double minY, double maxY, double y1, double y2, boolean setupRender) {
         if (setupRender) {
-            bufferBuilder = IRenderer.startLines(colorIn, settings.goalRenderLineWidthPixels.value, settings.renderGoalIgnoreDepth.value);
+            bufferBuilder = IRenderer.startLines(colorIn, settings.goalRenderLineWidthPixels.value);
         }
 
         renderHorizontalQuad(bufferBuilder, stack, minX, maxX, minZ, maxZ, y1);

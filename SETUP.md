@@ -56,7 +56,7 @@ The recommended Java versions by Minecraft version are
 | 1.12.2 - 1.16.5               | 8             |
 | 1.17.1                        | 16            |
 | 1.18.2 - 1.20.4               | 17            |
-| 1.20.5 - 1.21.4               | 21            |
+| 1.20.5 - 1.21.5               | 21            |
 
 Download java: https://adoptium.net/
 

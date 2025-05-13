@@ -28,11 +28,10 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
@@ -94,8 +93,7 @@ public class GuiClick extends Screen implements Helper {
                     MutableComponent component = Component.literal("Selection made! For usage: " + Baritone.settings().prefix.value + "help sel");
                     component.setStyle(component.getStyle()
                             .withColor(ChatFormatting.WHITE)
-                            .withClickEvent(new ClickEvent(
-                                    ClickEvent.Action.RUN_COMMAND,
+                            .withClickEvent(new ClickEvent.RunCommand(
                                     FORCE_COMMAND_PREFIX + "help sel"
                             )));
                     Helper.HELPER.logDirect(component);
@@ -127,7 +125,7 @@ public class GuiClick extends Screen implements Helper {
             // drawSingleSelectionBox WHEN?
             PathRenderer.drawManySelectionBoxes(modelViewStack, e, Collections.singletonList(currentMouseOver), Color.CYAN);
             if (clickStart != null && !clickStart.equals(currentMouseOver)) {
-                BufferBuilder bufferBuilder = IRenderer.startLines(Color.RED, Baritone.settings().pathRenderLineWidthPixels.value, true);
+                BufferBuilder bufferBuilder = IRenderer.startLines(Color.RED, Baritone.settings().pathRenderLineWidthPixels.value);
                 BetterBlockPos a = new BetterBlockPos(currentMouseOver);
                 BetterBlockPos b = new BetterBlockPos(clickStart);
                 IRenderer.emitAABB(bufferBuilder, modelViewStack, new AABB(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.min(a.z, b.z), Math.max(a.x, b.x) + 1, Math.max(a.y, b.y) + 1, Math.max(a.z, b.z) + 1));
