@@ -283,7 +283,6 @@ public class MovementTraverse extends Movement {
                 }
             }
             MovementHelper.moveTowards(ctx, state, against);
-//            MovementHelper.moveBackwards(ctx, state, against);
             return state;
         } else {
             wasTheBridgeBlockAlwaysThere = false;
@@ -316,7 +315,6 @@ public class MovementTraverse extends Movement {
                             // but only if our attempted place is straight ahead
                             return state.setInput(Input.MOVE_FORWARD, true);
                         }
-//                        return state.setInput(Input.MOVE_BACK, true);
                     } else if (ctx.playerRotations().isReallyCloseTo(state.getTarget().rotation)) {
                         // well i guess theres something in the way
                         return state.setInput(Input.CLICK_LEFT, true);
@@ -354,8 +352,6 @@ public class MovementTraverse extends Movement {
                 }
                 return state;
             }
-//            MovementHelper.moveTowards(ctx, state, positionsToBreak[0]);
-//            MovementHelper.moveTowardsBlock(ctx, state, positionsToBreak[0]);
             MovementHelper.alignBridge(ctx, state, dest);
             return state;
             // TODO MovementManager.moveTowardsBlock(to); // move towards not look at because if we are bridging for a couple blocks in a row, it is faster if we dont spin around and walk forwards then spin around and place backwards for every block
