@@ -99,7 +99,7 @@ public class MovementTraverse extends Movement {
                 }
                 if (srcDownBlock == Blocks.SOUL_SAND) {
                     WC += (WALK_ONE_OVER_SOUL_SAND_COST - WALK_ONE_BLOCK_COST) / 2;
-                } else if (Baritone.settings().allowWalkOnMagmaBlocks.value && srcDownBlock.equals(Blocks.MAGMA_BLOCK)) {
+                } else if (context.allowWalkOnMagmaBlocks && srcDownBlock.equals(Blocks.MAGMA_BLOCK)) {
                     sneaking = true;
                     WC += (SNEAK_ONE_BLOCK_COST - WALK_ONE_BLOCK_COST) / 2;
                 }

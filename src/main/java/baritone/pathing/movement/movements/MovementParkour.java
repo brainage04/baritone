@@ -102,7 +102,7 @@ public class MovementParkour extends Movement {
             return; // can't jump out of water
         }
         int maxJump;
-        if (Baritone.settings().allowWalkOnMagmaBlocks.value && standingOn.getBlock() == Blocks.MAGMA_BLOCK) {
+        if (context.allowWalkOnMagmaBlocks && standingOn.getBlock() == Blocks.MAGMA_BLOCK) {
             maxJump = 2;
         }
         else if (standingOn.getBlock() == Blocks.SOUL_SAND) {
