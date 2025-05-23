@@ -31,6 +31,7 @@ import baritone.utils.BlockStateInterface;
 import baritone.utils.ToolSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.piston.MovingPistonBlock;
@@ -658,13 +659,73 @@ public interface MovementHelper extends ActionCosts, Helper {
         )).setInput(Input.MOVE_FORWARD, true);
     }
 
-    static void alignBridge(IPlayerContext ctx, MovementState state, BlockPos dest) {
-        state.setTarget(new MovementTarget(
-                RotationUtils.calcRotationFromVec3d(VecUtils.getBlockPosCenter(dest),
-                        ctx.playerHead(),
-                        ctx.playerRotations()).withPitch(ctx.playerRotations().getPitch()),
-                false
-        )).setInput(Input.MOVE_BACK, true);
+    static void moveTowardsWithRotation(IPlayerContext ctx, MovementState state, BlockPos dest, Rotation rotation) {
+        state.setTarget(new MovementTarget(rotation, false));
+        /*
+        Options:
+        W: ax, az
+        S: -ax,-az
+        A: -az,ax
+        D: az,-ax
+        W+A:ax-az,az+ax,
+        W+D:ax+az,az-ax,
+        S+A:-ax-az,-az+ax,
+        S+D:-ax+az,-az-ax
+        */
+        boolean canSprint = Baritone.settings().allowSprint.value;
+        float ax = Mth.sin((float)Math.toRadians(ctx.playerRotations().getYaw()));
+        float az = Mth.cos((float)Math.toRadians(ctx.playerRotations().getYaw()));
+        Rotation blockRotation = RotationUtils.calcRotationFromVec3d(ctx.playerHead(),
+                VecUtils.getBlockPosCenter(dest),
+                ctx.playerRotations());
+        float targetAx = Mth.sin((float)Math.toRadians(blockRotation.getYaw()));
+        float targetAz = Mth.cos((float)Math.toRadians(blockRotation.getYaw()));
+        float[][] options = {
+                {canSprint ? ax * 1.3f : ax, canSprint ? az * 1.3f : az},
+                {-ax, -az},
+                {-az, az},
+                {az, -ax},
+                {(canSprint ? ax * 1.3f : ax) - az, (canSprint ? az * 1.3f : az) + ax},
+                {(canSprint ? ax * 1.3f : ax) + az, (canSprint ? az * 1.3f : az) - ax},
+                {-ax - az, -az + ax},
+                {-ax + az, -az - ax}
+        };
+        int selection = -1;
+        float closestX = 100000;
+        float closestZ = 100000;
+        for (int i = 0; i < options.length; i++) {
+            if (Math.abs(targetAx - options[i][0]) + Math.abs(targetAz - options[i][1]) < closestX + closestZ) {
+                closestX = Math.abs(targetAx - options[i][0]);
+                closestZ = Math.abs(targetAz - options[i][1]);
+                selection = i;
+            }
+        }
+        switch (selection) {
+            case 0:
+                state.setInput(Input.MOVE_FORWARD, true);
+                break;
+            case 1:
+                state.setInput(Input.MOVE_BACK, true);
+                break;
+            case 2:
+                state.setInput(Input.MOVE_LEFT, true);
+                break;
+            case 3:
+                state.setInput(Input.MOVE_RIGHT, true);
+                break;
+            case 4:
+                state.setInput(Input.MOVE_FORWARD, true).setInput(Input.MOVE_LEFT, true);
+                break;
+            case 5:
+                state.setInput(Input.MOVE_FORWARD, true).setInput(Input.MOVE_RIGHT, true);
+                break;
+            case 6:
+                state.setInput(Input.MOVE_BACK, true).setInput(Input.MOVE_LEFT, true);
+                break;
+            case 7:
+                state.setInput(Input.MOVE_BACK, true).setInput(Input.MOVE_RIGHT, true);
+                break;
+        }
     }
 
     /**
