@@ -725,6 +725,8 @@ public interface MovementHelper extends ActionCosts, Helper {
             case 7:
                 state.setInput(Input.MOVE_BACK, true).setInput(Input.MOVE_RIGHT, true);
                 break;
+            default:
+                break;
         }
     }
 
