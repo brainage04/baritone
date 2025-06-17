@@ -18,15 +18,18 @@
 package baritone.utils;
 
 import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuTexture;
+import com.mojang.blaze3d.systems.ScissorState;
+import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
+import org.joml.Vector4f;
 
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
@@ -44,11 +47,6 @@ public class BaritoneRenderType extends RenderType {
     }
 
     @Override
-    public RenderPipeline getRenderPipeline() {
-        return this.renderPipeline;
-    }
-
-    @Override
     public VertexFormat format() {
         return this.renderPipeline.getVertexFormat();
     }
@@ -60,11 +58,18 @@ public class BaritoneRenderType extends RenderType {
 
     @Override
     public void draw(final MeshData meshData) {
-        RenderPipeline renderPipeline = this.getRenderPipeline();
         this.setupRenderState();
+        GpuBufferSlice gpuBufferSlice = RenderSystem.getDynamicUniforms()
+            .writeTransform(
+                RenderSystem.getModelViewMatrix(),
+                new Vector4f(1.0F, 1.0F, 1.0F, 1.0F),
+                RenderSystem.getModelOffset(),
+                RenderSystem.getTextureMatrix(),
+                RenderSystem.getShaderLineWidth()
+            );
 
         try {
-            GpuBuffer gpuBuffer = renderPipeline.getVertexFormat().uploadImmediateVertexBuffer(meshData.vertexBuffer());
+            GpuBuffer gpuBuffer = this.renderPipeline.getVertexFormat().uploadImmediateVertexBuffer(meshData.vertexBuffer());
             GpuBuffer gpuBuffer2;
             VertexFormat.IndexType indexType;
             if (meshData.indexBuffer() == null) {
@@ -72,33 +77,40 @@ public class BaritoneRenderType extends RenderType {
                 gpuBuffer2 = autoStorageIndexBuffer.getBuffer(meshData.drawState().indexCount());
                 indexType = autoStorageIndexBuffer.type();
             } else {
-                gpuBuffer2 = renderPipeline.getVertexFormat().uploadImmediateIndexBuffer(meshData.indexBuffer());
+                gpuBuffer2 = this.renderPipeline.getVertexFormat().uploadImmediateIndexBuffer(meshData.indexBuffer());
                 indexType = meshData.drawState().indexType();
             }
 
-            RenderTarget renderTarget = getRenderTarget();
+            RenderTarget renderTarget = RenderStateShard.MAIN_TARGET.getRenderTarget();
+            GpuTextureView gpuTextureView = RenderSystem.outputColorTextureOverride != null
+                ? RenderSystem.outputColorTextureOverride
+                : renderTarget.getColorTextureView();
+            GpuTextureView gpuTextureView2 = renderTarget.useDepth
+                ? (RenderSystem.outputDepthTextureOverride != null ? RenderSystem.outputDepthTextureOverride : renderTarget.getDepthTextureView())
+                : null;
 
-            try (RenderPass renderPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
-                renderTarget.getColorTexture(),
-                OptionalInt.empty(),
-                renderTarget.useDepth ? renderTarget.getDepthTexture() : null,
-                OptionalDouble.empty())
-            ) {
-                renderPass.setPipeline(renderPipeline);
-                renderPass.setVertexBuffer(0, gpuBuffer);
-                if (RenderSystem.SCISSOR_STATE.isEnabled()) {
-                    renderPass.enableScissor(RenderSystem.SCISSOR_STATE);
+            try (RenderPass renderPass = RenderSystem.getDevice()
+                .createCommandEncoder()
+                .createRenderPass(() -> "Immediate draw for " + this.getName(), gpuTextureView, OptionalInt.empty(), gpuTextureView2, OptionalDouble.empty())) {
+                renderPass.setPipeline(this.renderPipeline);
+                ScissorState scissorState = RenderSystem.getScissorStateForRenderTypeDraws();
+                if (scissorState.enabled()) {
+                    renderPass.enableScissor(scissorState.x(), scissorState.y(), scissorState.width(), scissorState.height());
                 }
 
-                for(int i = 0; i < 12; ++i) {
-                    GpuTexture gpuTexture = RenderSystem.getShaderTexture(i);
-                    if (gpuTexture != null) {
-                        renderPass.bindSampler("Sampler" + i, gpuTexture);
+                RenderSystem.bindDefaultUniforms(renderPass);
+                renderPass.setUniform("DynamicTransforms", gpuBufferSlice);
+                renderPass.setVertexBuffer(0, gpuBuffer);
+
+                for (int i = 0; i < 12; i++) {
+                    GpuTextureView gpuTextureView3 = RenderSystem.getShaderTexture(i);
+                    if (gpuTextureView3 != null) {
+                        renderPass.bindSampler("Sampler" + i, gpuTextureView3);
                     }
                 }
 
                 renderPass.setIndexBuffer(gpuBuffer2, indexType);
-                renderPass.drawIndexed(0, meshData.drawState().indexCount());
+                renderPass.drawIndexed(0, 0, meshData.drawState().indexCount(), 1);
             }
         } catch (Throwable e) {
             try {
@@ -112,10 +124,5 @@ public class BaritoneRenderType extends RenderType {
         meshData.close();
 
         this.clearRenderState();
-    }
-
-    @Override
-    public RenderTarget getRenderTarget() {
-        return RenderStateShard.MAIN_TARGET.getRenderTarget();
     }
 }
