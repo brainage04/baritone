@@ -59,39 +59,39 @@ public class BaritoneRenderType extends RenderType {
     @Override
     public void draw(final MeshData meshData) {
         this.setupRenderState();
-        GpuBufferSlice gpuBufferSlice = RenderSystem.getDynamicUniforms()
-            .writeTransform(
-                RenderSystem.getModelViewMatrix(),
-                new Vector4f(1.0F, 1.0F, 1.0F, 1.0F),
-                RenderSystem.getModelOffset(),
-                RenderSystem.getTextureMatrix(),
-                RenderSystem.getShaderLineWidth()
-            );
-
         try {
-            GpuBuffer gpuBuffer = this.renderPipeline.getVertexFormat().uploadImmediateVertexBuffer(meshData.vertexBuffer());
-            GpuBuffer gpuBuffer2;
+            GpuBuffer vertexBuffer = this.renderPipeline.getVertexFormat().uploadImmediateVertexBuffer(meshData.vertexBuffer());
+            GpuBuffer indexBuffer;
             VertexFormat.IndexType indexType;
             if (meshData.indexBuffer() == null) {
                 RenderSystem.AutoStorageIndexBuffer autoStorageIndexBuffer = RenderSystem.getSequentialBuffer(meshData.drawState().mode());
-                gpuBuffer2 = autoStorageIndexBuffer.getBuffer(meshData.drawState().indexCount());
+                indexBuffer = autoStorageIndexBuffer.getBuffer(meshData.drawState().indexCount());
                 indexType = autoStorageIndexBuffer.type();
             } else {
-                gpuBuffer2 = this.renderPipeline.getVertexFormat().uploadImmediateIndexBuffer(meshData.indexBuffer());
+                indexBuffer = this.renderPipeline.getVertexFormat().uploadImmediateIndexBuffer(meshData.indexBuffer());
                 indexType = meshData.drawState().indexType();
             }
 
             RenderTarget renderTarget = RenderStateShard.MAIN_TARGET.getRenderTarget();
-            GpuTextureView gpuTextureView = RenderSystem.outputColorTextureOverride != null
+            GpuTextureView colorTextureTarget = RenderSystem.outputColorTextureOverride != null
                 ? RenderSystem.outputColorTextureOverride
                 : renderTarget.getColorTextureView();
-            GpuTextureView gpuTextureView2 = renderTarget.useDepth
+            GpuTextureView depthTextureTarget = renderTarget.useDepth
                 ? (RenderSystem.outputDepthTextureOverride != null ? RenderSystem.outputDepthTextureOverride : renderTarget.getDepthTextureView())
                 : null;
 
+            GpuBufferSlice dynamicTransformsUbo = RenderSystem.getDynamicUniforms()
+                .writeTransform(
+                    RenderSystem.getModelViewMatrix(),
+                    new Vector4f(1.0F, 1.0F, 1.0F, 1.0F),
+                    RenderSystem.getModelOffset(),
+                    RenderSystem.getTextureMatrix(),
+                    RenderSystem.getShaderLineWidth()
+                );
+
             try (RenderPass renderPass = RenderSystem.getDevice()
                 .createCommandEncoder()
-                .createRenderPass(() -> "Immediate draw for " + this.getName(), gpuTextureView, OptionalInt.empty(), gpuTextureView2, OptionalDouble.empty())) {
+                .createRenderPass(() -> "Immediate draw for " + this.getName(), colorTextureTarget, OptionalInt.empty(), depthTextureTarget, OptionalDouble.empty())) {
                 renderPass.setPipeline(this.renderPipeline);
                 ScissorState scissorState = RenderSystem.getScissorStateForRenderTypeDraws();
                 if (scissorState.enabled()) {
@@ -99,17 +99,17 @@ public class BaritoneRenderType extends RenderType {
                 }
 
                 RenderSystem.bindDefaultUniforms(renderPass);
-                renderPass.setUniform("DynamicTransforms", gpuBufferSlice);
-                renderPass.setVertexBuffer(0, gpuBuffer);
+                renderPass.setUniform("DynamicTransforms", dynamicTransformsUbo);
+                renderPass.setVertexBuffer(0, vertexBuffer);
 
                 for (int i = 0; i < 12; i++) {
-                    GpuTextureView gpuTextureView3 = RenderSystem.getShaderTexture(i);
-                    if (gpuTextureView3 != null) {
-                        renderPass.bindSampler("Sampler" + i, gpuTextureView3);
+                    GpuTextureView texture = RenderSystem.getShaderTexture(i);
+                    if (texture != null) {
+                        renderPass.bindSampler("Sampler" + i, texture);
                     }
                 }
 
-                renderPass.setIndexBuffer(gpuBuffer2, indexType);
+                renderPass.setIndexBuffer(indexBuffer, indexType);
                 renderPass.drawIndexed(0, 0, meshData.drawState().indexCount(), 1);
             }
         } catch (Throwable e) {
