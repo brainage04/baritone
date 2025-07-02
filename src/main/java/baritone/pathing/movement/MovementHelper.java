@@ -660,7 +660,7 @@ public interface MovementHelper extends ActionCosts, Helper {
     }
 
     static void moveTowardsWithRotation(IPlayerContext ctx, MovementState state, BlockPos dest, Rotation rotation) {
-        state.setTarget(new MovementTarget(rotation, false));
+        state.setTarget(new MovementTarget(rotation, true));
         /*
         Options:
         W: ax, az
