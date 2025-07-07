@@ -352,10 +352,7 @@ public class MovementTraverse extends Movement {
                 }
                 return state;
             }
-            MovementHelper.moveTowardsWithRotation(ctx, state, dest,
-                    RotationUtils.calcRotationFromVec3d(ctx.playerHead(),
-                            VecUtils.getBlockPosCenter(dest),
-                    ctx.playerRotations()).add(new Rotation(45, 0).withPitch(ctx.playerRotations().getPitch())));
+            MovementHelper.moveTowardsWithRotation(ctx, state, dest, ctx.playerRotations());
             return state;
             // TODO MovementManager.moveTowardsBlock(to); // move towards not look at because if we are bridging for a couple blocks in a row, it is faster if we dont spin around and walk forwards then spin around and place backwards for every block
         }

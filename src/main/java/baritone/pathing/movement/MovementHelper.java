@@ -661,17 +661,6 @@ public interface MovementHelper extends ActionCosts, Helper {
 
     static void moveTowardsWithRotation(IPlayerContext ctx, MovementState state, BlockPos dest, Rotation rotation) {
         state.setTarget(new MovementTarget(rotation, true));
-        /*
-        Options:
-        W: ax, az
-        S: -ax,-az
-        A: -az,ax
-        D: az,-ax
-        W+A:ax-az,az+ax,
-        W+D:ax+az,az-ax,
-        S+A:-ax-az,-az+ax,
-        S+D:-ax+az,-az-ax
-        */
         boolean canSprint = Baritone.settings().allowSprint.value;
         float ax = Mth.sin((float)Math.toRadians(ctx.playerRotations().getYaw()));
         float az = Mth.cos((float)Math.toRadians(ctx.playerRotations().getYaw()));
@@ -681,14 +670,14 @@ public interface MovementHelper extends ActionCosts, Helper {
         float targetAx = Mth.sin((float)Math.toRadians(blockRotation.getYaw()));
         float targetAz = Mth.cos((float)Math.toRadians(blockRotation.getYaw()));
         float[][] options = {
-                {canSprint ? ax * 1.3f : ax, canSprint ? az * 1.3f : az},
-                {-ax, -az},
-                {-az, az},
-                {az, -ax},
-                {(canSprint ? ax * 1.3f : ax) - az, (canSprint ? az * 1.3f : az) + ax},
-                {(canSprint ? ax * 1.3f : ax) + az, (canSprint ? az * 1.3f : az) - ax},
-                {-ax - az, -az + ax},
-                {-ax + az, -az - ax}
+                {canSprint ? ax * 1.3f : ax, canSprint ? az * 1.3f : az}, // W
+                {-ax, -az}, // S
+                {-az, az}, // A
+                {az, -ax}, // D
+                {(canSprint ? ax * 1.3f : ax) - az, (canSprint ? az * 1.3f : az) + ax}, // W+A
+                {(canSprint ? ax * 1.3f : ax) + az, (canSprint ? az * 1.3f : az) - ax}, // W+D
+                {-ax - az, -az + ax}, // S+A
+                {-ax + az, -az - ax} // S+D
         };
         int selection = -1;
         float closestX = 100000;
