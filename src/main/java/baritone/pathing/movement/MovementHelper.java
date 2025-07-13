@@ -50,10 +50,12 @@ import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Optional;
 
+import static baritone.api.utils.RotationUtils.DEG_TO_RAD_F;
 import static baritone.pathing.movement.Movement.HORIZONTALS_BUT_ALSO_DOWN_____SO_EVERY_DIRECTION_EXCEPT_UP;
 import static baritone.pathing.precompute.Ternary.*;
 
@@ -661,34 +663,12 @@ public interface MovementHelper extends ActionCosts, Helper {
 
     static void moveTowardsWithRotation(IPlayerContext ctx, MovementState state, BlockPos dest, Rotation rotation) {
         state.setTarget(new MovementTarget(rotation, true));
-        boolean canSprint = Baritone.settings().allowSprint.value;
-        float ax = Mth.sin((float)Math.toRadians(ctx.playerRotations().getYaw()));
-        float az = Mth.cos((float)Math.toRadians(ctx.playerRotations().getYaw()));
+        float ax = Mth.sin(ctx.playerRotations().getYaw() * DEG_TO_RAD_F);
+        float az = Mth.cos(ctx.playerRotations().getYaw() * DEG_TO_RAD_F);
         Rotation blockRotation = RotationUtils.calcRotationFromVec3d(ctx.playerHead(),
                 VecUtils.getBlockPosCenter(dest),
                 ctx.playerRotations());
-        float targetAx = Mth.sin((float)Math.toRadians(blockRotation.getYaw()));
-        float targetAz = Mth.cos((float)Math.toRadians(blockRotation.getYaw()));
-        float[][] options = {
-                {canSprint ? ax * 1.3f : ax, canSprint ? az * 1.3f : az}, // W
-                {-ax, -az}, // S
-                {-az, az}, // A
-                {az, -ax}, // D
-                {(canSprint ? ax * 1.3f : ax) - az, (canSprint ? az * 1.3f : az) + ax}, // W+A
-                {(canSprint ? ax * 1.3f : ax) + az, (canSprint ? az * 1.3f : az) - ax}, // W+D
-                {-ax - az, -az + ax}, // S+A
-                {-ax + az, -az - ax} // S+D
-        };
-        int selection = -1;
-        float closestX = 100000;
-        float closestZ = 100000;
-        for (int i = 0; i < options.length; i++) {
-            if (Math.abs(targetAx - options[i][0]) + Math.abs(targetAz - options[i][1]) < closestX + closestZ) {
-                closestX = Math.abs(targetAx - options[i][0]);
-                closestZ = Math.abs(targetAz - options[i][1]);
-                selection = i;
-            }
-        }
+        int selection = getSelection(blockRotation, ax, az);
         switch (selection) {
             case 0:
                 state.setInput(Input.MOVE_FORWARD, true);
@@ -717,6 +697,37 @@ public interface MovementHelper extends ActionCosts, Helper {
             default:
                 break;
         }
+    }
+
+    private static int getSelection(Rotation blockRotation, float ax, float az) {
+        float targetAx = Mth.sin(blockRotation.getYaw() * DEG_TO_RAD_F);
+        float targetAz = Mth.cos(blockRotation.getYaw() * DEG_TO_RAD_F);
+        float[][] options = getOptions(ax, az);
+        int selection = -1;
+        float closestX = 100000;
+        float closestZ = 100000;
+        for (int i = 0; i < options.length; i++) {
+            if (Math.abs(targetAx - options[i][0]) + Math.abs(targetAz - options[i][1]) < closestX + closestZ) {
+                closestX = Math.abs(targetAx - options[i][0]);
+                closestZ = Math.abs(targetAz - options[i][1]);
+                selection = i;
+            }
+        }
+        return selection;
+    }
+
+    private static float[] @NotNull [] getOptions(float ax, float az) {
+        boolean canSprint = Baritone.settings().allowSprint.value;
+        return new float[][]{
+                {canSprint ? ax * 1.3f : ax, canSprint ? az * 1.3f : az}, // W
+                {-ax, -az}, // S
+                {-az, az}, // A
+                {az, -ax}, // D
+                {(canSprint ? ax * 1.3f : ax) - az, (canSprint ? az * 1.3f : az) + ax}, // W+A
+                {(canSprint ? ax * 1.3f : ax) + az, (canSprint ? az * 1.3f : az) - ax}, // W+D
+                {-ax - az, -az + ax}, // S+A
+                {-ax + az, -az - ax} // S+D
+        };
     }
 
     /**
@@ -838,7 +849,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         if (ctx.getSelectedBlock().isPresent()) {
             BlockPos selectedBlock = ctx.getSelectedBlock().get();
             Direction side = ((BlockHitResult) ctx.objectMouseOver()).getDirection();
-            // only way for selectedBlock.equals(placeAt) to be true is if it's replacable
+            // only way for selectedBlock.equals(placeAt) to be true is if it's replaceable
             if (selectedBlock.equals(placeAt) || (MovementHelper.canPlaceAgainst(ctx, selectedBlock) && selectedBlock.relative(side).equals(placeAt))) {
                 if (wouldSneak) {
                     state.setInput(Input.SNEAK, true);
