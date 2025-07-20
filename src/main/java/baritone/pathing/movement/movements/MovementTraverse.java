@@ -311,7 +311,7 @@ public class MovementTraverse extends Movement {
                     if (dist1 > 0.83) {
                         // might need to go forward a bit
                         float yaw = RotationUtils.calcRotationFromVec3d(ctx.playerHead(), VecUtils.getBlockPosCenter(dest), ctx.playerRotations()).getYaw();
-                        if (Math.abs(state.getTarget().rotation.getYaw() - yaw) < 0.1 && !Baritone.settings().assumeSafeWalk.value) {
+                        if (Math.abs(state.getTarget().rotation.getYaw() - yaw) < 0.1) {
                             // but only if our attempted place is straight ahead
                             return state.setInput(Input.MOVE_FORWARD, true);
                         }
