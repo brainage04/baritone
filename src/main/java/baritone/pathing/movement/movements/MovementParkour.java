@@ -104,17 +104,12 @@ public class MovementParkour extends Movement {
         int maxJump;
         if (context.allowWalkOnMagmaBlocks && standingOn.is(Blocks.MAGMA_BLOCK)) {
             maxJump = 2;
-        }
-        else if (standingOn.getBlock() == Blocks.SOUL_SAND) {
+        } else if (standingOn.getBlock() == Blocks.SOUL_SAND) {
             maxJump = 2; // 1 block gap
-        }
-        else {
-            if (context.canSprint) {
-                maxJump = 4;
-            }
-            else {
-                maxJump = 3;
-            }
+        } else if (context.canSprint) {
+            maxJump = 4;
+        } else {
+            maxJump = 3;
         }
 
         // check parkour jumps from smallest to largest for obstacles/walls and landing positions
