@@ -85,6 +85,7 @@ public class MovementTraverse extends Movement {
         if (frostWalker || MovementHelper.canWalkOn(context, destX, y - 1, destZ, destOn)) { //this is a walk, not a bridge
             double WC = WALK_ONE_BLOCK_COST;
             boolean water = false;
+            boolean sneaking = false;
             if (MovementHelper.isWater(pb0) || MovementHelper.isWater(pb1)) {
                 WC = context.waterWalkSpeed;
                 water = true;
@@ -98,6 +99,9 @@ public class MovementTraverse extends Movement {
                 }
                 if (srcDownBlock == Blocks.SOUL_SAND) {
                     WC += (WALK_ONE_OVER_SOUL_SAND_COST - WALK_ONE_BLOCK_COST) / 2;
+                } else if (context.allowWalkOnMagmaBlocks && srcDownBlock.equals(Blocks.MAGMA_BLOCK)) {
+                    sneaking = true;
+                    WC += (SNEAK_ONE_BLOCK_COST - WALK_ONE_BLOCK_COST) / 2;
                 }
             }
             double hardness1 = MovementHelper.getMiningDurationTicks(context, destX, y, destZ, pb1, false);
@@ -106,7 +110,7 @@ public class MovementTraverse extends Movement {
             }
             double hardness2 = MovementHelper.getMiningDurationTicks(context, destX, y + 1, destZ, pb0, true); // only include falling on the upper block to break
             if (hardness1 == 0 && hardness2 == 0) {
-                if (!water && context.canSprint) {
+                if (!water && !sneaking && context.canSprint) {
                     // If there's nothing in the way, and this isn't water, and we aren't sneak placing
                     // We can sprint =D
                     // Don't check for soul sand, since we can sprint on that too
@@ -213,11 +217,11 @@ public class MovementTraverse extends Movement {
                     .setInput(Input.SPRINT, true);
         }
 
-        //sneak may have been set to true in the PREPPING state while mining an adjacent block
-        state.setInput(Input.SNEAK, false);
-
         Block fd = BlockStateInterface.get(ctx, src.below()).getBlock();
         boolean ladder = fd == Blocks.LADDER || fd == Blocks.VINE;
+
+        //sneak may have been set to true in the PREPPING state while mining an adjacent block, but we still want it to be true if the player is about to go on magma
+        state.setInput(Input.SNEAK, Baritone.settings().allowWalkOnMagmaBlocks.value && MovementHelper.steppingOnBlocks(ctx).stream().anyMatch(block -> ctx.world().getBlockState(block).is(Blocks.MAGMA_BLOCK)));
 
         if (pb0.getBlock() instanceof DoorBlock || pb1.getBlock() instanceof DoorBlock) {
             boolean notPassable = pb0.getBlock() instanceof DoorBlock && !MovementHelper.isDoorPassable(ctx, src, dest) || pb1.getBlock() instanceof DoorBlock && !MovementHelper.isDoorPassable(ctx, dest, src);
