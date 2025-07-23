@@ -661,8 +661,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         )).setInput(Input.MOVE_FORWARD, true);
     }
 
-    static void moveTowardsWithRotation(IPlayerContext ctx, MovementState state, BlockPos dest, Rotation rotation) {
-        state.setTarget(new MovementTarget(rotation, true));
+    static void moveTowardsWithoutRotation(IPlayerContext ctx, MovementState state, BlockPos dest) {
         float ax = Mth.sin(ctx.playerRotations().getYaw() * DEG_TO_RAD_F);
         float az = Mth.cos(ctx.playerRotations().getYaw() * DEG_TO_RAD_F);
         Rotation blockRotation = RotationUtils.calcRotationFromVec3d(ctx.playerHead(),
