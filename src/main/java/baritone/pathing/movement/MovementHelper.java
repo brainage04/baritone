@@ -52,6 +52,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -387,7 +388,7 @@ public interface MovementHelper extends ActionCosts, Helper {
     static boolean avoidWalkingInto(BlockState state) {
         Block block = state.getBlock();
         return !state.getFluidState().isEmpty()
-                || block == Blocks.MAGMA_BLOCK
+                || (block == Blocks.MAGMA_BLOCK && !Baritone.settings().allowWalkOnMagmaBlocks.value)
                 || block == Blocks.CACTUS
                 || block == Blocks.SWEET_BERRY_BUSH
                 || block instanceof BaseFireBlock
@@ -423,7 +424,7 @@ public interface MovementHelper extends ActionCosts, Helper {
 
     static Ternary canWalkOnBlockState(BlockState state) {
         Block block = state.getBlock();
-        if (isBlockNormalCube(state) && block != Blocks.MAGMA_BLOCK && block != Blocks.BUBBLE_COLUMN && block != Blocks.HONEY_BLOCK) {
+        if (isBlockNormalCube(state) && (block != Blocks.MAGMA_BLOCK || Baritone.settings().allowWalkOnMagmaBlocks.value) && block != Blocks.BUBBLE_COLUMN && block != Blocks.HONEY_BLOCK) {
             return YES;
         }
         if (block instanceof AzaleaBlock) {
@@ -858,5 +859,17 @@ public interface MovementHelper extends ActionCosts, Helper {
         return b instanceof AirBlock ||
                 b == Blocks.LAVA ||
                 b == Blocks.WATER;
+    }
+
+    static List<BetterBlockPos> steppingOnBlocks(IPlayerContext ctx) {
+        List<BetterBlockPos> blocks = new ArrayList<>();
+        for (byte x = -1; x <= 1; x++) {
+            for (byte z = -1; z <= 1; z++) {
+                if (ctx.player().getBoundingBox().intersects(Vec3.atLowerCornerOf(ctx.player().blockPosition()).add(x, 0, z), Vec3.atLowerCornerOf(ctx.player().blockPosition()).add(x + 1, 1, z + 1))) {
+                    blocks.add(new BetterBlockPos(ctx.player().getBlockX() + x, ctx.player().getBlockY() - 1, ctx.player().getBlockZ() + z));
+                }
+            }
+        }
+        return blocks;
     }
 }
