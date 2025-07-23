@@ -669,32 +669,14 @@ public interface MovementHelper extends ActionCosts, Helper {
                 ctx.playerRotations());
         int selection = getSelection(blockRotation, ax, az);
         switch (selection) {
-            case 0:
-                state.setInput(Input.MOVE_FORWARD, true);
-                break;
-            case 1:
-                state.setInput(Input.MOVE_BACK, true);
-                break;
-            case 2:
-                state.setInput(Input.MOVE_LEFT, true);
-                break;
-            case 3:
-                state.setInput(Input.MOVE_RIGHT, true);
-                break;
-            case 4:
-                state.setInput(Input.MOVE_FORWARD, true).setInput(Input.MOVE_LEFT, true);
-                break;
-            case 5:
-                state.setInput(Input.MOVE_FORWARD, true).setInput(Input.MOVE_RIGHT, true);
-                break;
-            case 6:
-                state.setInput(Input.MOVE_BACK, true).setInput(Input.MOVE_LEFT, true);
-                break;
-            case 7:
-                state.setInput(Input.MOVE_BACK, true).setInput(Input.MOVE_RIGHT, true);
-                break;
-            default:
-                break;
+            case 0 -> state.setInput(Input.MOVE_FORWARD, true);
+            case 1 -> state.setInput(Input.MOVE_BACK, true);
+            case 2 -> state.setInput(Input.MOVE_LEFT, true);
+            case 3 -> state.setInput(Input.MOVE_RIGHT, true);
+            case 4 -> state.setInput(Input.MOVE_FORWARD, true).setInput(Input.MOVE_LEFT, true);
+            case 5 -> state.setInput(Input.MOVE_FORWARD, true).setInput(Input.MOVE_RIGHT, true);
+            case 6 -> state.setInput(Input.MOVE_BACK, true).setInput(Input.MOVE_LEFT, true);
+            case 7 -> state.setInput(Input.MOVE_BACK, true).setInput(Input.MOVE_RIGHT, true);
         }
     }
 
@@ -706,7 +688,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         float closestX = 100000;
         float closestZ = 100000;
         for (int i = 0; i < options.length; i++) {
-            if (Math.abs(targetAx - options[i][0]) + Math.abs(targetAz - options[i][1]) < closestX + closestZ) {
+            if (Mth.abs(targetAx - options[i][0]) + Mth.abs(targetAz - options[i][1]) < closestX + closestZ) {
                 closestX = Math.abs(targetAx - options[i][0]);
                 closestZ = Math.abs(targetAz - options[i][1]);
                 selection = i;
@@ -715,7 +697,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         return selection;
     }
 
-    private static float[] @NotNull [] getOptions(float ax, float az) {
+    private static float[][] getOptions(float ax, float az) {
         boolean canSprint = Baritone.settings().allowSprint.value;
         return new float[][]{
                 {canSprint ? ax * 1.3f : ax, canSprint ? az * 1.3f : az}, // W
