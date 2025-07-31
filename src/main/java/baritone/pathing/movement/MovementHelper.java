@@ -702,7 +702,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         return new float[][]{
                 {canSprint ? ax * 1.3f : ax, canSprint ? az * 1.3f : az}, // W
                 {-ax, -az}, // S
-                {-az, az}, // A
+                {-az, ax}, // A
                 {az, -ax}, // D
                 {(canSprint ? ax * 1.3f : ax) - az, (canSprint ? az * 1.3f : az) + ax}, // W+A
                 {(canSprint ? ax * 1.3f : ax) + az, (canSprint ? az * 1.3f : az) - ax}, // W+D
