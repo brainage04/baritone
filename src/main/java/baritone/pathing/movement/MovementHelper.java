@@ -49,6 +49,7 @@ import net.minecraft.world.level.material.WaterFluid;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -677,37 +678,38 @@ public interface MovementHelper extends ActionCosts, Helper {
             case 5 -> state.setInput(Input.MOVE_FORWARD, true).setInput(Input.MOVE_RIGHT, true);
             case 6 -> state.setInput(Input.MOVE_BACK, true).setInput(Input.MOVE_LEFT, true);
             case 7 -> state.setInput(Input.MOVE_BACK, true).setInput(Input.MOVE_RIGHT, true);
+            default -> {}
         }
     }
 
     private static int getSelection(Rotation blockRotation, float ax, float az) {
         float targetAx = Mth.sin(blockRotation.getYaw() * DEG_TO_RAD_F);
         float targetAz = Mth.cos(blockRotation.getYaw() * DEG_TO_RAD_F);
-        float[][] options = getOptions(ax, az);
+        Vec2[] options = getOptions(ax, az);
         int selection = -1;
         float closestX = 100000;
         float closestZ = 100000;
         for (int i = 0; i < options.length; i++) {
-            if (Mth.abs(targetAx - options[i][0]) + Mth.abs(targetAz - options[i][1]) < closestX + closestZ) {
-                closestX = Math.abs(targetAx - options[i][0]);
-                closestZ = Math.abs(targetAz - options[i][1]);
+            if (Mth.abs(targetAx - options[i].x) + Mth.abs(targetAz - options[i].y) < closestX + closestZ) {
+                closestX = Math.abs(targetAx - options[i].x);
+                closestZ = Math.abs(targetAz - options[i].y);
                 selection = i;
             }
         }
         return selection;
     }
 
-    private static float[][] getOptions(float ax, float az) {
+    private static Vec2[] getOptions(float ax, float az) {
         boolean canSprint = Baritone.settings().allowSprint.value;
-        return new float[][]{
-                {canSprint ? ax * 1.3f : ax, canSprint ? az * 1.3f : az}, // W
-                {-ax, -az}, // S
-                {-az, ax}, // A
-                {az, -ax}, // D
-                {(canSprint ? ax * 1.3f : ax) - az, (canSprint ? az * 1.3f : az) + ax}, // W+A
-                {(canSprint ? ax * 1.3f : ax) + az, (canSprint ? az * 1.3f : az) - ax}, // W+D
-                {-ax - az, -az + ax}, // S+A
-                {-ax + az, -az - ax} // S+D
+        return new Vec2[]{
+                new Vec2(canSprint ? ax * 1.3f : ax, canSprint ? az * 1.3f : az), // W
+                new Vec2(-ax, -az), // S
+                new Vec2(-az, ax), // A
+                new Vec2(az, -ax), // D
+                new Vec2((canSprint ? ax * 1.3f : ax) - az, (canSprint ? az * 1.3f : az) + ax), // W+A
+                new Vec2((canSprint ? ax * 1.3f : ax) + az, (canSprint ? az * 1.3f : az) - ax), // W+D
+                new Vec2(-ax - az, -az + ax), // S+A
+                new Vec2(-ax + az, -az - ax) // S+D
         };
     }
 
