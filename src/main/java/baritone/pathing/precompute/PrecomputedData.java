@@ -29,23 +29,21 @@ public class PrecomputedData {
     /**
      * byte layout
      *
-     *          0              1             2              3              4              5              6             7
+     *          7              6             5              4              3              2              1             0
      *          |              |             |              |              |              |              |             |
      *      unused         canWalkOn       maybe       canWalkThrough    maybe        fullyPassable    maybe       completed
      */
 
-    private static final byte COMPLETED_MASK = (byte) 0x01;
-    private static final byte FULLY_PASSABLE_MAYBE_MASK = (byte) 0x02;
-    private static final byte FULLY_PASSABLE_MASK = (byte) 0x04;
-    private static final byte CAN_WALK_THROUGH_MAYBE_MASK = (byte) 0x08;
-    private static final byte CAN_WALK_THROUGH_MASK = (byte) 0x10;
-    private static final byte CAN_WALK_ON_MAYBE_MASK = (byte) 0x20;
-    private static final byte CAN_WALK_ON_MASK = (byte) 0x40;
-
-    private static final byte zero = (byte) 0;
+    private static final byte COMPLETED_MASK = (byte) 1 << 0;
+    private static final byte FULLY_PASSABLE_MAYBE_MASK = (byte) 1 << 1;
+    private static final byte FULLY_PASSABLE_MASK = (byte) 1 << 2;
+    private static final byte CAN_WALK_THROUGH_MAYBE_MASK = (byte) 1 << 3;
+    private static final byte CAN_WALK_THROUGH_MASK = (byte) 1 << 4;
+    private static final byte CAN_WALK_ON_MAYBE_MASK = (byte) 1 << 5;
+    private static final byte CAN_WALK_ON_MASK = (byte) 1 << 6;
 
     private int fillData(int id, BlockState state) {
-        byte blockData = zero;
+        byte blockData = 0;
 
         Ternary canWalkOnState = MovementHelper.canWalkOnBlockState(state);
         switch (canWalkOnState) {
@@ -75,14 +73,14 @@ public class PrecomputedData {
         int id = Block.BLOCK_STATE_REGISTRY.getId(state);
         int blockData = data[id];
 
-        if ((blockData & COMPLETED_MASK) == zero) { // we need to fill in the data
+        if ((blockData & COMPLETED_MASK) == 0) { // we need to fill in the data
             blockData = fillData(id, state);
         }
 
-        if ((blockData & CAN_WALK_ON_MAYBE_MASK) != zero) {
+        if ((blockData & CAN_WALK_ON_MAYBE_MASK) != 0) {
             return MovementHelper.canWalkOnPosition(bsi, x, y, z, state);
         } else {
-            return (blockData & CAN_WALK_ON_MASK) != zero;
+            return (blockData & CAN_WALK_ON_MASK) != 0;
         }
     }
 
@@ -90,14 +88,14 @@ public class PrecomputedData {
         int id = Block.BLOCK_STATE_REGISTRY.getId(state);
         int blockData = data[id];
 
-        if ((blockData & COMPLETED_MASK) == zero) { // we need to fill in the data
+        if ((blockData & COMPLETED_MASK) == 0) { // we need to fill in the data
             blockData = fillData(id, state);
         }
 
-        if ((blockData & CAN_WALK_THROUGH_MAYBE_MASK) != zero) {
+        if ((blockData & CAN_WALK_THROUGH_MAYBE_MASK) != 0) {
             return MovementHelper.canWalkThroughPosition(bsi, x, y, z, state);
         } else {
-            return (blockData & CAN_WALK_THROUGH_MASK) != zero;
+            return (blockData & CAN_WALK_THROUGH_MASK) != 0;
         }
     }
 
@@ -105,14 +103,14 @@ public class PrecomputedData {
         int id = Block.BLOCK_STATE_REGISTRY.getId(state);
         int blockData = data[id];
 
-        if ((blockData & COMPLETED_MASK) == zero) { // we need to fill in the data
+        if ((blockData & COMPLETED_MASK) == 0) { // we need to fill in the data
             blockData = fillData(id, state);
         }
 
-        if ((blockData & FULLY_PASSABLE_MAYBE_MASK) != zero) {
+        if ((blockData & FULLY_PASSABLE_MAYBE_MASK) != 0) {
             return MovementHelper.fullyPassablePosition(bsi, x, y, z, state);
         } else {
-            return (blockData & FULLY_PASSABLE_MASK) != zero;
+            return (blockData & FULLY_PASSABLE_MASK) != 0;
         }
     }
 }
