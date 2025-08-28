@@ -691,13 +691,13 @@ public interface MovementHelper extends ActionCosts, Helper {
         float newYaw;
         if (distance > 0) {
             if (distance > 22.5f) {
-                newYaw = -45f + distance;
+                newYaw = distance - 45f;
             } else {
                 newYaw = distance;
             }
         } else {
             if (distance < -22.5f) {
-                newYaw = 45f + distance;
+                newYaw = distance + 45f;
             } else {
                 newYaw = distance;
             }
