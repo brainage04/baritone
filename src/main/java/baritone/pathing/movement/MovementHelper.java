@@ -688,20 +688,9 @@ public interface MovementHelper extends ActionCosts, Helper {
         ).getYaw();
         moveTowardsWithoutRotation(ctx, state, idealYaw);
         float distance = Rotation.yawDistanceFromOffset(ctx.playerRotations().getYaw(), idealYaw) % 45f;
-        float newYaw;
-        if (distance > 0) {
-            if (distance > 22.5f) {
-                newYaw = distance - 45f;
-            } else {
-                newYaw = distance;
-            }
-        } else {
-            if (distance < -22.5f) {
-                newYaw = distance + 45f;
-            } else {
-                newYaw = distance;
-            }
-        }
+        float newYaw = distance > 0f ?
+                distance > 22.5f ? distance - 45f : distance :
+                distance < -22.5f ? distance + 45f : distance;
         state.setTarget(new MovementTarget(new Rotation(
                 ctx.playerRotations().getYaw() - newYaw,
                 ctx.playerRotations().getPitch()
