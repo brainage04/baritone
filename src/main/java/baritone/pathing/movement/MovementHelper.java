@@ -686,7 +686,6 @@ public interface MovementHelper extends ActionCosts, Helper {
                 VecUtils.getBlockPosCenter(dest),
                 ctx.playerRotations()
         ).getYaw();
-        moveTowardsWithoutRotation(ctx, state, idealYaw);
         float distance = Rotation.yawDistanceFromOffset(ctx.playerRotations().getYaw(), idealYaw) % 45f;
         float newYaw = distance > 0f ?
                 distance > 22.5f ? distance - 45f : distance :
@@ -695,6 +694,7 @@ public interface MovementHelper extends ActionCosts, Helper {
                 ctx.playerRotations().getYaw() - newYaw,
                 ctx.playerRotations().getPitch()
         ), true));
+        moveTowardsWithoutRotation(ctx, state, idealYaw);
     }
 
     /**
