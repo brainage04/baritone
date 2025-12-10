@@ -129,7 +129,7 @@ public final class PathRenderer implements IRenderer {
     }
 
     public static void drawPath(PoseStack stack, List<BetterBlockPos> positions, int startIndex, Color color, boolean fadeOut, int fadeStart0, int fadeEnd0, double offset) {
-        BufferBuilder bufferBuilder = IRenderer.startLines(color, settings.pathRenderLineWidthPixels.value);
+        BufferBuilder bufferBuilder = IRenderer.startLines(color);
 
         int fadeStart = fadeStart0 + startIndex;
         int fadeEnd = fadeEnd0 + startIndex;
@@ -179,26 +179,30 @@ public final class PathRenderer implements IRenderer {
 
         IRenderer.emitLine(bufferBuilder, stack,
                 x1 + offset - vpX, y1 + offset - vpY, z1 + offset - vpZ,
-                x2 + offset - vpX, y2 + offset - vpY, z2 + offset - vpZ
+                x2 + offset - vpX, y2 + offset - vpY, z2 + offset - vpZ,
+                settings.pathRenderLineWidthPixels.value
         );
         if (renderPathAsFrickinThingy) {
             IRenderer.emitLine(bufferBuilder, stack,
                     x2 + offset - vpX, y2 + offset - vpY, z2 + offset - vpZ,
-                    x2 + offset - vpX, y2 + extraOffset - vpY, z2 + offset - vpZ
+                    x2 + offset - vpX, y2 + extraOffset - vpY, z2 + offset - vpZ,
+                    settings.pathRenderLineWidthPixels.value
             );
             IRenderer.emitLine(bufferBuilder, stack,
                     x2 + offset - vpX, y2 + extraOffset - vpY, z2 + offset - vpZ,
-                    x1 + offset - vpX, y1 + extraOffset - vpY, z1 + offset - vpZ
+                    x1 + offset - vpX, y1 + extraOffset - vpY, z1 + offset - vpZ,
+                    settings.pathRenderLineWidthPixels.value
             );
             IRenderer.emitLine(bufferBuilder, stack,
                     x1 + offset - vpX, y1 + extraOffset - vpY, z1 + offset - vpZ,
-                    x1 + offset - vpX, y1 + offset - vpY, z1 + offset - vpZ
+                    x1 + offset - vpX, y1 + offset - vpY, z1 + offset - vpZ,
+                    settings.pathRenderLineWidthPixels.value
             );
         }
     }
 
     public static void drawManySelectionBoxes(PoseStack stack, Entity player, Collection<BlockPos> positions, Color color) {
-        BufferBuilder bufferBuilder = IRenderer.startLines(color, settings.pathRenderLineWidthPixels.value);
+        BufferBuilder bufferBuilder = IRenderer.startLines(color);
 
         //BlockPos blockpos = movingObjectPositionIn.getBlockPos();
         BlockStateInterface bsi = new BlockStateInterface(BaritoneAPI.getProvider().getPrimaryBaritone().getPlayerContext()); // TODO this assumes same dimension between primary baritone and render view? is this safe?
@@ -208,7 +212,7 @@ public final class PathRenderer implements IRenderer {
             VoxelShape shape = state.getShape(player.level(), pos);
             AABB toDraw = shape.isEmpty() ? Shapes.block().bounds() : shape.bounds();
             toDraw = toDraw.move(pos);
-            IRenderer.emitAABB(bufferBuilder, stack, toDraw, .002D);
+            IRenderer.emitAABB(bufferBuilder, stack, toDraw, .002D, settings.pathRenderLineWidthPixels.value);
         });
 
         IRenderer.endLines(bufferBuilder, settings.renderSelectionBoxesIgnoreDepth.value);
@@ -310,18 +314,18 @@ public final class PathRenderer implements IRenderer {
 
     private static void drawDankLitGoalBox(BufferBuilder bufferBuilder, PoseStack stack, Color colorIn, double minX, double maxX, double minZ, double maxZ, double minY, double maxY, double y1, double y2, boolean setupRender) {
         if (setupRender) {
-            bufferBuilder = IRenderer.startLines(colorIn, settings.goalRenderLineWidthPixels.value);
+            bufferBuilder = IRenderer.startLines(colorIn);
         }
 
-        renderHorizontalQuad(bufferBuilder, stack, minX, maxX, minZ, maxZ, y1);
-        renderHorizontalQuad(bufferBuilder, stack, minX, maxX, minZ, maxZ, y2);
+        renderHorizontalQuad(bufferBuilder, stack, minX, maxX, minZ, maxZ, y1, settings.goalRenderLineWidthPixels.value);
+        renderHorizontalQuad(bufferBuilder, stack, minX, maxX, minZ, maxZ, y2, settings.goalRenderLineWidthPixels.value);
 
         for (double y = minY; y < maxY; y += 16) {
             double max = Math.min(maxY, y + 16);
-            IRenderer.emitLine(bufferBuilder, stack, minX, y, minZ, minX, max, minZ, 0.0, 1.0, 0.0);
-            IRenderer.emitLine(bufferBuilder, stack, maxX, y, minZ, maxX, max, minZ, 0.0, 1.0, 0.0);
-            IRenderer.emitLine(bufferBuilder, stack, maxX, y, maxZ, maxX, max, maxZ, 0.0, 1.0, 0.0);
-            IRenderer.emitLine(bufferBuilder, stack, minX, y, maxZ, minX, max, maxZ, 0.0, 1.0, 0.0);
+            IRenderer.emitLine(bufferBuilder, stack, minX, y, minZ, minX, max, minZ, 0.0, 1.0, 0.0, settings.goalRenderLineWidthPixels.value);
+            IRenderer.emitLine(bufferBuilder, stack, maxX, y, minZ, maxX, max, minZ, 0.0, 1.0, 0.0, settings.goalRenderLineWidthPixels.value);
+            IRenderer.emitLine(bufferBuilder, stack, maxX, y, maxZ, maxX, max, maxZ, 0.0, 1.0, 0.0, settings.goalRenderLineWidthPixels.value);
+            IRenderer.emitLine(bufferBuilder, stack, minX, y, maxZ, minX, max, maxZ, 0.0, 1.0, 0.0, settings.goalRenderLineWidthPixels.value);
         }
 
         if (setupRender) {
@@ -329,12 +333,12 @@ public final class PathRenderer implements IRenderer {
         }
     }
 
-    private static void renderHorizontalQuad(BufferBuilder bufferBuilder, PoseStack stack, double minX, double maxX, double minZ, double maxZ, double y) {
+    private static void renderHorizontalQuad(BufferBuilder bufferBuilder, PoseStack stack, double minX, double maxX, double minZ, double maxZ, double y, float lineWidth) {
         if (y != 0) {
-            IRenderer.emitLine(bufferBuilder, stack, minX, y, minZ, maxX, y, minZ, 1.0, 0.0, 0.0);
-            IRenderer.emitLine(bufferBuilder, stack, maxX, y, minZ, maxX, y, maxZ, 0.0, 0.0, 1.0);
-            IRenderer.emitLine(bufferBuilder, stack, maxX, y, maxZ, minX, y, maxZ, -1.0, 0.0, 0.0);
-            IRenderer.emitLine(bufferBuilder, stack, minX, y, maxZ, minX, y, minZ, 0.0, 0.0, -1.0);
+            IRenderer.emitLine(bufferBuilder, stack, minX, y, minZ, maxX, y, minZ, 1.0, 0.0, 0.0, lineWidth);
+            IRenderer.emitLine(bufferBuilder, stack, maxX, y, minZ, maxX, y, maxZ, 0.0, 0.0, 1.0, lineWidth);
+            IRenderer.emitLine(bufferBuilder, stack, maxX, y, maxZ, minX, y, maxZ, -1.0, 0.0, 0.0, lineWidth);
+            IRenderer.emitLine(bufferBuilder, stack, minX, y, maxZ, minX, y, minZ, 0.0, 0.0, -1.0, lineWidth);
         }
     }
 }

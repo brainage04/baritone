@@ -23,7 +23,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -98,18 +98,18 @@ public final class SpongeSchematic extends StaticSchematic {
 
         private static final Pattern REGEX = Pattern.compile("(?<location>(\\w+:)?\\w+)(\\[(?<properties>(\\w+=\\w+,?)+)])?");
 
-        private final ResourceLocation resourceLocation;
+        private final Identifier identifier;
         private final Map<String, String> properties;
         private BlockState blockState;
 
-        private SerializedBlockState(ResourceLocation resourceLocation, Map<String, String> properties) {
-            this.resourceLocation = resourceLocation;
+        private SerializedBlockState(Identifier identifier, Map<String, String> properties) {
+            this.identifier = identifier;
             this.properties = properties;
         }
 
         private BlockState deserialize() {
             if (this.blockState == null) {
-                Block block = BuiltInRegistries.BLOCK.get(this.resourceLocation)
+                Block block = BuiltInRegistries.BLOCK.get(this.identifier)
                     .map(Holder.Reference::value)
                     .orElse(Blocks.AIR);
                 this.blockState = block.defaultBlockState();
@@ -134,7 +134,7 @@ public final class SpongeSchematic extends StaticSchematic {
                 String location = m.group("location");
                 String properties = m.group("properties");
 
-                ResourceLocation resourceLocation = ResourceLocation.parse(location);
+                Identifier identifier = Identifier.parse(location);
                 Map<String, String> propertiesMap = new HashMap<>();
                 if (properties != null) {
                     for (String property : properties.split(",")) {
@@ -143,7 +143,7 @@ public final class SpongeSchematic extends StaticSchematic {
                     }
                 }
 
-                return new SerializedBlockState(resourceLocation, propertiesMap);
+                return new SerializedBlockState(identifier, propertiesMap);
             } catch (Exception e) {
                 e.printStackTrace();
                 return null;

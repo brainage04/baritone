@@ -21,7 +21,7 @@ import baritone.utils.schematic.StaticSchematic;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.datafix.fixes.ItemIdFix;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -64,7 +64,7 @@ public final class MCEditSchematic extends StaticSchematic {
                         // additional is 0 through 15 inclusive since it's & 0xF above
                         blockID |= additional[blockInd] << 8;
                     }
-                    ResourceLocation blockKey = ResourceLocation.tryParse(ItemIdFix.getItem(blockID));
+                    Identifier blockKey = Identifier.tryParse(ItemIdFix.getItem(blockID));
                     Block block = blockKey == null
                         ? Blocks.AIR
                         : BuiltInRegistries.BLOCK.get(blockKey)
