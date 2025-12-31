@@ -35,8 +35,8 @@ import static baritone.api.command.IBaritoneChatControl.FORCE_COMMAND_PREFIX;
 public abstract class MixinScreen implements IGuiScreen {
 
     //TODO: switch to enum extention with mixin 9.0 or whenever Mumfrey gets around to it
-    @Inject(method = "handleClickEvent", at = @At(value = "HEAD"), cancellable = true)
-    public void handleCustomClickEvent(final Minecraft minecraft, final ClickEvent clickEvent, final CallbackInfo ci) {
+    @Inject(method = "defaultHandleGameClickEvent", at = @At(value = "HEAD"), cancellable = true)
+    private static void handleCustomClickEvent(final ClickEvent clickEvent, final Minecraft minecraft, final Screen screen, final CallbackInfo ci) {
         if (clickEvent == null) {
             return;
         }
