@@ -237,9 +237,9 @@ public final class Settings {
     /**
      * Blocks that Baritone will attempt to avoid (Used in avoidance)
      */
-    public final Setting<List<Block>> blocksToAvoid = new Setting<>(new ArrayList<>(
-            // Leave Empty by Default
-    ));
+    public final Setting<List<Block>> blocksToAvoid = new Setting<>(new ArrayList<>(List.of(
+            Blocks.TRIPWIRE
+    )));
 
     /**
      * Blocks that Baritone is not allowed to break
@@ -1549,6 +1549,11 @@ public final class Settings {
      * Verbose chat logging in elytra mode
      */
     public final Setting<Boolean> elytraChatSpam = new Setting<>(false);
+
+    /**
+     * Sneak when magma blocks are under feet
+     */
+    public final Setting<Boolean> allowWalkOnMagmaBlocks = new Setting<>(false);
 
     /**
      * A map of lowercase setting field names to their respective setting
