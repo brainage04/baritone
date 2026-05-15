@@ -95,12 +95,17 @@ publishing {
     publications {
         mavenFabric(MavenPublication) {
             artifactId = rootProject.archives_base_name + "-" + project.name
-            from components.java
+            artifact(remapJar) {
+                builtBy remapJar
+            }
         }
     }
 
     // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
     repositories {
-        // Add repositories to publish to here.
+        maven {
+            name = "localBaritone"
+            url = rootProject.layout.buildDirectory.dir("local-repo")
+        }
     }
 }
