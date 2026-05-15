@@ -18,7 +18,6 @@
 package baritone.gradle.task;
 
 import baritone.gradle.util.Determinizer;
-import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskAction;
@@ -29,9 +28,11 @@ import org.gradle.internal.jvm.Jvm;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
+import org.gradle.process.ExecOperations;
 import xyz.wagyourtail.unimined.api.UniminedExtension;
 import xyz.wagyourtail.unimined.api.minecraft.MinecraftConfig;
 
+import javax.inject.Inject;
 import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
@@ -48,6 +49,13 @@ import java.util.zip.ZipFile;
  * @since 10/11/2018
  */
 public class ProguardTask extends BaritoneGradleTask {
+
+    private final ExecOperations execOperations;
+
+    @Inject
+    public ProguardTask(ExecOperations execOperations) {
+        this.execOperations = execOperations;
+    }
 
     @Input
     private String proguardVersion;
@@ -78,7 +86,7 @@ public class ProguardTask extends BaritoneGradleTask {
 
     private File getMcJar() {
         MinecraftConfig mcc = ext.getMinecrafts().get(sourceSets.getByName("main"));
-        return mcc.getMinecraft(mcc.getMcPatcher().getProdNamespace(), mcc.getMcPatcher().getProdNamespace()).toFile();
+        return mcc.getMinecraft(mcc.getMcPatcher().getProdNamespace()).toFile();
     }
 
     private boolean isMcJar(File f) {
@@ -175,7 +183,7 @@ public class ProguardTask extends BaritoneGradleTask {
     }
 
     private Stream<File> acquireDependencies() {
-        return getProject().getConvention().getPlugin(JavaPluginConvention.class).getSourceSets().findByName("main").getCompileClasspath().getFiles()
+        return sourceSets.getByName("main").getCompileClasspath().getFiles()
                 .stream()
                 .filter(File::isFile);
     }
@@ -227,7 +235,7 @@ public class ProguardTask extends BaritoneGradleTask {
 
         Path workingDirectory = getTemporaryFile("");
 
-        getProject().javaexec(spec -> {
+        execOperations.javaexec(spec -> {
             spec.workingDir(workingDirectory.toFile());
             spec.args("@" + workingDirectory.relativize(config));
             spec.classpath(getTemporaryFile(String.format(PROGUARD_JAR, proguardVersion)));
