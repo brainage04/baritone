@@ -41,7 +41,9 @@ pluginManagement {
 
 rootProject.name = 'baritone'
 
-include("tweaker")
+if (providers.gradleProperty("include_tweaker").map { it.toBoolean() }.getOrElse(false)) {
+       include("tweaker")
+}
 for (platform in available_loaders.split(",")) {
        include(platform)
 }
