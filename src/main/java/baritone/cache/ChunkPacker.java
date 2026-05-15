@@ -29,7 +29,6 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.PalettedContainer;
 import net.minecraft.world.level.dimension.DimensionType;
-import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
 
@@ -115,25 +114,9 @@ public final class ChunkPacker {
     private static PathingBlockType getPathingBlockType(BlockState state, LevelChunk chunk, int x, int y, int z) {
         Block block = state.getBlock();
         if (MovementHelper.isWater(state)) {
-            // only water source blocks are plausibly usable, flowing water should be avoid
-            // FLOWING_WATER is a waterfall, it doesn't really matter and caching it as AVOID just makes it look wrong
-            if (MovementHelper.possiblyFlowing(state)) {
-                return PathingBlockType.AVOID;
-            }
-            int adjY = y - chunk.getLevel().dimensionType().minY();
-            if (
-                    (x != 15 && MovementHelper.possiblyFlowing(getFromChunk(chunk, x + 1, adjY, z)))
-                            || (x != 0 && MovementHelper.possiblyFlowing(getFromChunk(chunk, x - 1, adjY, z)))
-                            || (z != 15 && MovementHelper.possiblyFlowing(getFromChunk(chunk, x, adjY, z + 1)))
-                            || (z != 0 && MovementHelper.possiblyFlowing(getFromChunk(chunk, x, adjY, z - 1)))
-            ) {
-                return PathingBlockType.AVOID;
-            }
-            if (x == 0 || x == 15 || z == 0 || z == 15) {
-                Vec3 flow = state.getFluidState().getFlow(chunk.getLevel(), new BlockPos(x + (chunk.getPos().x() << 4), y, z + (chunk.getPos().z() << 4)));
-                if (flow.x != 0.0 || flow.z != 0.0) {
-                    return PathingBlockType.WATER;
-                }
+            // Full water source blocks are traversable even when Minecraft reports edge flow.
+            // Partial flowing water is still avoided because currents can invalidate movement assumptions.
+            if (!state.getFluidState().isFull()) {
                 return PathingBlockType.AVOID;
             }
             return PathingBlockType.WATER;

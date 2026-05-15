@@ -172,7 +172,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         }
         FluidState fluidState = state.getFluidState();
         if (!fluidState.isEmpty()) {
-            if (fluidState.getType().getAmount(fluidState) != 8) {
+            if (!fluidState.isFull()) {
                 return NO;
             } else {
                 return MAYBE;
@@ -747,7 +747,7 @@ public interface MovementHelper extends ActionCosts, Helper {
     static boolean possiblyFlowing(BlockState state) {
         FluidState fluidState = state.getFluidState();
         return fluidState.getType() instanceof FlowingFluid
-                && fluidState.getType().getAmount(fluidState) != 8;
+                && !fluidState.isFull();
     }
 
     static boolean isFlowing(int x, int y, int z, BlockState state, BlockStateInterface bsi) {
@@ -755,13 +755,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         if (!(fluidState.getType() instanceof FlowingFluid)) {
             return false;
         }
-        if (fluidState.getType().getAmount(fluidState) != 8) {
-            return true;
-        }
-        return possiblyFlowing(bsi.get0(x + 1, y, z))
-                || possiblyFlowing(bsi.get0(x - 1, y, z))
-                || possiblyFlowing(bsi.get0(x, y, z + 1))
-                || possiblyFlowing(bsi.get0(x, y, z - 1));
+        return !fluidState.isFull();
     }
 
     static boolean isBlockNormalCube(BlockState state) {
