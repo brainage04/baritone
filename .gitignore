@@ -29,6 +29,7 @@ common/logs/
 .project
 .settings/
 baritone_Client.launch
+**/bin/
 
 # Copyright Files
 !/.idea/copyright/Baritone.xml
