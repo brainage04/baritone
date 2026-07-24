@@ -107,7 +107,7 @@ components.java {
 }
 
 task proguard(type: ProguardTask) {
-    proguardVersion "7.4.2"
+    proguardVersion "7.9.1"
     compType "neoforge"
 }
 
@@ -119,14 +119,18 @@ build.finalizedBy(createDist)
 
 publishing {
     publications {
-        mavenFabric(MavenPublication) {
+        mavenNeoForge(MavenPublication) {
             artifactId = rootProject.archives_base_name + "-" + project.name
-            from components.java
+            artifact(remapJar) {
+                builtBy remapJar
+            }
         }
     }
 
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
     repositories {
-        // Add repositories to publish to here.
+        maven {
+            name = "localBaritone"
+            url = rootProject.layout.buildDirectory.dir("local-repo")
+        }
     }
 }

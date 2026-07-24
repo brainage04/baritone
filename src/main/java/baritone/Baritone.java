@@ -47,6 +47,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 /**
@@ -56,9 +57,14 @@ import java.util.function.Function;
 public class Baritone implements IBaritone {
 
     private static final ThreadPoolExecutor threadPool;
+    private static final AtomicInteger threadCounter = new AtomicInteger();
 
     static {
-        threadPool = new ThreadPoolExecutor(4, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
+        threadPool = new ThreadPoolExecutor(4, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(), runnable -> {
+            Thread thread = new Thread(runnable, "Baritone Worker #" + threadCounter.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+        });
     }
 
     private final Minecraft mc;
@@ -245,7 +251,7 @@ public class Baritone implements IBaritone {
         new Thread(() -> {
             try {
                 Thread.sleep(100);
-                mc.execute(() -> mc.setScreen(new GuiClick()));
+                mc.execute(() -> mc.setScreenAndShow(new GuiClick()));
             } catch (Exception ignored) {}
         }).start();
     }
