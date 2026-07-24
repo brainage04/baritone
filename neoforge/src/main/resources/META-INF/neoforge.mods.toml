@@ -6,14 +6,14 @@
 # The name of the mod loader type to load - for regular FML @Mod mods it should be javafml
 modLoader="javafml" #mandatory
 # A version range to match for said mod loader - for regular FML @Mod it will be the forge version
-loaderVersion="[1,)" #mandatory This is typically bumped every Minecraft version by Forge. See our download page for lists of versions.
+loaderVersion="[11,)" #mandatory This is typically bumped every Minecraft version by Forge. See our download page for lists of versions.
 license="https://raw.githubusercontent.com/cabaletta/baritone/1.16.2/LICENSE"
 # A URL to refer people to when problems occur with this mod
 issueTrackerURL="https://github.com/cabaletta/baritone/issues" #optional
 # A list of mods - how many allowed here is determined by the individual mod loader
 [[mods]] #mandatory
 # The modid of the mod
-modId="baritoe" #mandatory
+modId="baritone" #mandatory
 # The version number of the mod - there's a few well known ${} variables useable here or just hardcode it
 version="${version}" #mandatory
  # A display name for the mod
@@ -31,13 +31,13 @@ description='''
 A Minecraft pathfinder bot.
 '''
 
-[[dependencies.baritoe]]
+[[dependencies.baritone]]
 modId="minecraft"
 type="required"
 # This version range declares a minimum of the current minecraft version up to but not including the next major version
-versionRange="[1.21.11]"
+versionRange="[26.2,26.3)"
 ordering="NONE"
-side="BOTH"
+side="CLIENT"
 
 [[mixins]]
 config = "mixins.baritone.json"
