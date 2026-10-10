@@ -146,6 +146,22 @@ jar {
     from sourceSets.main.output, sourceSets.launch.output, sourceSets.api.output
 }
 
+publishing {
+    publications {
+        mavenCommon(MavenPublication) {
+            artifactId = rootProject.archives_base_name + "-common"
+            artifact(jar)
+        }
+    }
+
+    repositories {
+        maven {
+            name = "localBaritone"
+            url = rootProject.layout.buildDirectory.dir("local-repo")
+        }
+    }
+}
+
 javadoc {
     options.addStringOption('Xwerror', '-quiet') // makes the build fail on travis when there is a javadoc error
     options.linkSource true
