@@ -20,6 +20,7 @@ package baritone.utils;
 import baritone.api.BaritoneAPI;
 import baritone.api.utils.IPlayerContext;
 import baritone.utils.accessor.IPlayerControllerMP;
+import net.minecraft.network.protocol.game.ServerboundPunchPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -62,10 +63,10 @@ public final class BlockBreakHelper {
             if (ctx.playerController().hasBrokenBlock()) {
                 ctx.playerController().syncHeldItem();
                 ctx.playerController().clickBlock(((BlockHitResult) trace).getBlockPos(), ((BlockHitResult) trace).getDirection());
-                ctx.player().swing(InteractionHand.MAIN_HAND);
+                swingMainHand();
             } else {
                 if (ctx.playerController().onPlayerDamageBlock(((BlockHitResult) trace).getBlockPos(), ((BlockHitResult) trace).getDirection())) {
-                    ctx.player().swing(InteractionHand.MAIN_HAND);
+                    swingMainHand();
                 }
                 if (ctx.playerController().hasBrokenBlock()) { // block broken this tick
                     // break delay timer only applies for multi-tick block breaks like vanilla
@@ -83,5 +84,12 @@ public final class BlockBreakHelper {
         } else {
             wasHitting = false;
         }
+    }
+
+    // Mirrors Minecraft#continueAttack/startAttack: since 26.3 swing() only animates locally, so the punch packet that
+    // used to be sent by LocalPlayer#swing (as a swing packet) is now sent explicitly.
+    private void swingMainHand() {
+        ctx.player().swing(InteractionHand.MAIN_HAND, ctx.player().getMainHandItem().getAttackAnimation(), false);
+        ctx.player().connection.send(ServerboundPunchPacket.INSTANCE);
     }
 }

@@ -20,14 +20,13 @@ package baritone.launch.mixins;
 import baritone.api.BaritoneAPI;
 import baritone.api.IBaritone;
 import baritone.api.event.events.RenderEvent;
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.DeltaTracker;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import org.joml.Matrix4f;
-import org.joml.Matrix4fc;
 import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -45,12 +44,15 @@ public class MixinWorldRenderer {
             method = "render",
             at = @At("RETURN")
     )
-    private void onStartHand(final GraphicsResourceAllocator graphicsResourceAllocator, final DeltaTracker deltaTracker, final boolean bl, final CameraRenderState cameraRenderState, final Matrix4fc worldMatrix, final GpuBufferSlice gpuBufferSlice, final Vector4f vector4f, final boolean bl2, final CallbackInfo ci) {
+    private void onStartHand(final GraphicsResourceAllocator graphicsResourceAllocator, final boolean bl, final CameraRenderState cameraRenderState, final GpuBufferSlice gpuBufferSlice, final Vector4f vector4f, final boolean bl2, final boolean bl3, final CallbackInfo ci) {
+        // 26.3 dropped the DeltaTracker and world matrix parameters; the world matrix LevelRenderer#render applies to
+        // the model view stack is now cameraRenderState.viewRotationMatrix
+        float partialTicks = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false);
         for (IBaritone ibaritone : BaritoneAPI.getProvider().getAllBaritones()) {
             PoseStack poseStack = new PoseStack();
-            poseStack.mulPose(worldMatrix);
+            poseStack.mulPose(cameraRenderState.viewRotationMatrix);
             Matrix4f projection = new Matrix4f(cameraRenderState.projectionMatrix);
-            ibaritone.getGameEventHandler().onRenderPass(new RenderEvent(deltaTracker.getGameTimeDeltaPartialTick(false), poseStack, projection));
+            ibaritone.getGameEventHandler().onRenderPass(new RenderEvent(partialTicks, poseStack, projection));
         }
     }
 }

@@ -39,8 +39,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import baritone.api.utils.Pair;
-import net.minecraft.util.Util;
+import com.mojang.blaze3d.Blaze3D;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Stream;
@@ -96,7 +97,7 @@ public class ExampleBaritoneControl extends Behavior implements Helper {
             return false;
         } else if (msg.trim().equalsIgnoreCase("orderpizza")) {
             try {
-                Util.getPlatform().openUri("https://www.dominos.com/en/pages/order/");
+                Blaze3D.openUri(URI.create("https://www.dominos.com/en/pages/order/"));
             } catch (Exception ignored) {}
             return false;
         }
