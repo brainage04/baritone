@@ -760,11 +760,12 @@ public interface MovementHelper extends ActionCosts, Helper {
     }
 
     static boolean isFlowing(int x, int y, int z, BlockState state, BlockStateInterface bsi) {
-        FluidState fluidState = state.getFluidState();
-        if (!(fluidState.getType() instanceof FlowingFluid)) {
-            return false;
-        }
-        return !fluidState.isFull();
+        return isFlowing(state.getFluidState());
+    }
+
+    static boolean isFlowing(FluidState fluidState) {
+        // Not isFull(): falling water has amount 8 like a source block (FluidState.java:68-70).
+        return fluidState.getType() instanceof FlowingFluid && !fluidState.isSource();
     }
 
     static boolean isBlockNormalCube(BlockState state) {
