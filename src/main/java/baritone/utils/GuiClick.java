@@ -163,16 +163,18 @@ public class GuiClick extends Screen implements Helper {
         return new Vec3(pos.x(), pos.y(), pos.z());
     }
 
+    // The level projection is reverse-Z: Projection#getMatrix passes zFar as the near distance (Projection.java:66-71),
+    // so the near plane is clip depth 1 and the far plane 0, or -1 without zero-to-one clip space.
     static final class ClipDepth {
 
         private ClipDepth() {}
 
         static float near() {
-            return 0;
+            return 1;
         }
 
         static float far(boolean zZeroToOne) {
-            return 1;
+            return zZeroToOne ? 0 : -1;
         }
     }
 }
