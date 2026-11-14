@@ -23,6 +23,7 @@ import baritone.api.pathing.goals.GoalBlock;
 import baritone.api.utils.BetterBlockPos;
 import baritone.api.utils.Helper;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
@@ -72,8 +73,8 @@ public class GuiClick extends Screen implements Helper {
         my = mc.getWindow().getScreenHeight() - my;
         my *= mc.getWindow().getHeight() / (double) mc.getWindow().getScreenHeight();
         mx *= mc.getWindow().getWidth() / (double) mc.getWindow().getScreenWidth();
-        Vec3 near = toWorld(mx, my, 0);
-        Vec3 far = toWorld(mx, my, 1); // "Use 0.945 that's what stack overflow says" - leijurv
+        Vec3 near = toWorld(mx, my, ClipDepth.near());
+        Vec3 far = toWorld(mx, my, ClipDepth.far(RenderSystem.getDevice().getDeviceInfo().isZZeroToOne()));
 
         if (near != null && far != null) {
             Vec3 viewerPos = new Vec3(PathRenderer.posX(), PathRenderer.posY(), PathRenderer.posZ());
@@ -160,5 +161,18 @@ public class GuiClick extends Screen implements Helper {
 
         pos.mul(1/pos.w());
         return new Vec3(pos.x(), pos.y(), pos.z());
+    }
+
+    static final class ClipDepth {
+
+        private ClipDepth() {}
+
+        static float near() {
+            return 0;
+        }
+
+        static float far(boolean zZeroToOne) {
+            return 1;
+        }
     }
 }
