@@ -18,13 +18,12 @@
 package baritone.launch;
 
 import org.junit.Test;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.classfile.ClassFile;
+import java.lang.classfile.MethodModel;
+import java.lang.classfile.instruction.InvokeInstruction;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -74,23 +73,23 @@ public class PlayerUpdatePostOrderTest {
     }
 
     private static List<String> tickCalls() throws IOException {
-        List<String> calls = new ArrayList<>();
+        byte[] bytes;
         try (InputStream in = PlayerUpdatePostOrderTest.class.getClassLoader().getResourceAsStream("net/minecraft/client/Minecraft.class")) {
             assertNotNull("Minecraft.class is not on the test classpath", in);
-            new ClassReader(in).accept(new ClassVisitor(Opcodes.ASM9) {
-                @Override
-                public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                    if (!name.equals("tick") || !descriptor.equals("()V")) {
-                        return null;
-                    }
-                    return new MethodVisitor(Opcodes.ASM9) {
-                        @Override
-                        public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
-                            calls.add(owner + "." + name + descriptor);
-                        }
-                    };
+            bytes = in.readAllBytes();
+        }
+        // The JDK's class-file API, not ASM: asm_version 9.7 rejects 26.3's Java 25 class files ("Unsupported class
+        // file major version 69").
+        List<String> calls = new ArrayList<>();
+        for (MethodModel method : ClassFile.of().parse(bytes).methods()) {
+            if (!method.methodName().equalsString("tick") || !method.methodType().equalsString("()V")) {
+                continue;
+            }
+            method.code().ifPresent(code -> code.forEach(element -> {
+                if (element instanceof InvokeInstruction invoke) {
+                    calls.add(invoke.owner().asInternalName() + "." + invoke.name().stringValue() + invoke.type().stringValue());
                 }
-            }, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+            }));
         }
         return calls;
     }
