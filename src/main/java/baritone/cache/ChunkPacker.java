@@ -114,9 +114,9 @@ public final class ChunkPacker {
     private static PathingBlockType getPathingBlockType(BlockState state, LevelChunk chunk, int x, int y, int z) {
         Block block = state.getBlock();
         if (MovementHelper.isWater(state)) {
-            // Full water source blocks are traversable even when Minecraft reports edge flow.
-            // Partial flowing water is still avoided because currents can invalidate movement assumptions.
-            if (!state.getFluidState().isFull()) {
+            // Source blocks are traversable even when Minecraft reports edge flow.
+            // Flowing and falling water is avoided because currents can invalidate movement assumptions.
+            if (MovementHelper.isFlowing(state.getFluidState())) {
                 return PathingBlockType.AVOID;
             }
             return PathingBlockType.WATER;
