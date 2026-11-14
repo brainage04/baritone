@@ -103,7 +103,7 @@ public class MixinMinecraft {
             method = "tick",
             at = @At(
                     value = "INVOKE",
-                    target = "net/minecraft/client/multiplayer/ClientLevel.tickEntities()V",
+                    target = "Lnet/minecraft/client/player/LocalPlayer;sendChanges()V",
                     shift = At.Shift.AFTER
             )
     )
@@ -112,6 +112,8 @@ public class MixinMinecraft {
         if (baritone != null) {
             // Intentionally call this after all entities have been updated. That way, any modification to rotations
             // can be recognized by other entity code. (Fireworks and Pigs, for example)
+            // Since 26.3 the move packet is built in sendChanges (LocalPlayer.java:263-330), after the entity tick, so
+            // POST waits for it; otherwise the server gets the rotation LookBehavior restores here.
             baritone.getGameEventHandler().onPlayerUpdate(new PlayerUpdateEvent(EventState.POST));
         }
     }
