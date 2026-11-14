@@ -59,6 +59,9 @@ public interface IRenderer {
 
     IEntityRenderManager renderManager = (IEntityRenderManager) Minecraft.getInstance().getEntityRenderDispatcher();
     Settings settings = BaritoneAPI.getSettings();
+    // Shared like vanilla's old Tesselator: a ByteBufferBuilder's native memory is only freed by close()
+    // (ByteBufferBuilder.java:132-140), and every buffer begun here is built and drawn before the next one begins.
+    ByteBufferBuilder BUFFER = new ByteBufferBuilder(256);
     BlendFunction BARITONE_LINES_BLEND = new BlendFunction(
         BlendFactor.SRC_ALPHA,
         BlendFactor.ONE_MINUS_SRC_ALPHA,
@@ -152,7 +155,7 @@ public interface IRenderer {
     }
 
     static BufferBuilder beginBuffer(PrimitiveTopology topology, VertexFormat format) {
-        return new BufferBuilder(new ByteBufferBuilder(256), topology, format);
+        return new BufferBuilder(BUFFER, topology, format);
     }
 
     static void endBuffer(BufferBuilder bufferBuilder, RenderType renderType) {
