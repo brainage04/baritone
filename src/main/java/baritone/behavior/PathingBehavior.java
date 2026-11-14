@@ -70,8 +70,6 @@ public final class PathingBehavior extends Behavior implements IPathingBehavior,
 
     private final Object pathPlanLock = new Object();
 
-    private boolean lastAutoJump;
-
     private BetterBlockPos expectedSegmentStart;
 
     private final LinkedBlockingQueue<PathEvent> toDispatch = new LinkedBlockingQueue<>();
@@ -234,23 +232,6 @@ public final class PathingBehavior extends Behavior implements IPathingBehavior,
                     queuePathEvent(PathEvent.NEXT_SEGMENT_CALC_STARTED);
                     findPathInNewThread(current.getPath().getDest(), false, context);
                 }
-            }
-        }
-    }
-
-    @Override
-    public void onPlayerUpdate(PlayerUpdateEvent event) {
-        if (current != null) {
-            switch (event.getState()) {
-                case PRE:
-                    lastAutoJump = ctx.minecraft().options.autoJump().get();
-                    ctx.minecraft().options.autoJump().set(false);
-                    break;
-                case POST:
-                    ctx.minecraft().options.autoJump().set(lastAutoJump);
-                    break;
-                default:
-                    break;
             }
         }
     }

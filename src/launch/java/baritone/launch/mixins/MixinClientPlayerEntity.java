@@ -33,6 +33,7 @@ import org.spongepowered.asm.mixin.injection.Group;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -156,5 +157,20 @@ public class MixinClientPlayerEntity {
             return false;
         }
         return instance.tryToStartFallFlying();
+    }
+
+    // LocalPlayer caches the auto-jump option in sendPosition (LocalPlayer.java:329 in 26.3), which
+    // runs after the player tick (Minecraft.java:1803-1805), so turning the option off around the
+    // tick does not reach the cached value. Answering here covers the read in canAutoJump.
+    @Inject(
+            method = "isAutoJumpEnabled",
+            at = @At("HEAD"),
+            cancellable = true
+    )
+    private void isAutoJumpEnabled(CallbackInfoReturnable<Boolean> cir) {
+        IBaritone baritone = BaritoneAPI.getProvider().getBaritoneForPlayer((LocalPlayer) (Object) this);
+        if (baritone != null && baritone.getPathingBehavior().isPathing()) {
+            cir.setReturnValue(false);
+        }
     }
 }
