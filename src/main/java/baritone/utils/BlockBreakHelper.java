@@ -86,8 +86,9 @@ public final class BlockBreakHelper {
         }
     }
 
-    // Mirrors Minecraft#continueAttack/startAttack: since 26.3 swing() only animates locally, so the punch packet that
-    // used to be sent by LocalPlayer#swing (as a swing packet) is now sent explicitly.
+    // Since 26.3 LivingEntity#swing only animates locally (LivingEntity.java:2030-2041); the server learns about a
+    // swing from ServerboundPunchPacket, which Minecraft#continueAttack and #startAttack send next to the swing
+    // (Minecraft.java:1604-1606, 1684-1685).
     private void swingMainHand() {
         ctx.player().swing(InteractionHand.MAIN_HAND, ctx.player().getMainHandItem().getAttackAnimation(), false);
         ctx.player().connection.send(ServerboundPunchPacket.INSTANCE);
