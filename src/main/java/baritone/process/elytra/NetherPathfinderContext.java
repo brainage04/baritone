@@ -24,6 +24,7 @@ import dev.babbaj.pathfinder.NetherPathfinder;
 import dev.babbaj.pathfinder.Octree;
 import dev.babbaj.pathfinder.PathSegment;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.BitStorage;
 import net.minecraft.world.level.ChunkPos;
@@ -47,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-
 /**
  * @author Brady
  */
@@ -63,8 +63,8 @@ public final class NetherPathfinderContext implements IElytraPathFinder {
             throw new RuntimeException(ex);
         }
     }
-    // Blocks per 16x16x16 chunk section (LevelChunkSection.SECTION_SIZE before Minecraft 26.1).
-    private static final int SECTION_SIZE = 16 * 16 * 16;
+    // Blocks per chunk section, one bit each in the pathfinder's octree (SectionPos.SECTION_BLOCK_COUNT).
+    private static final int SECTION_SIZE = SectionPos.SECTION_BLOCK_COUNT;
     private static final BlockState AIR_BLOCK_STATE = Blocks.AIR.defaultBlockState();
     // This lock must be held while there are active pointers to chunks in java,
     // but we just hold it for the entire tick so we don't have to think much about it.
