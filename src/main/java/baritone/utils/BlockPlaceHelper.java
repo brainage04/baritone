@@ -47,8 +47,10 @@ public class BlockPlaceHelper {
         }
         rightClickTimer = Baritone.settings().rightClickSpeed.value - BASE_PLACE_DELAY;
         for (InteractionHand hand : InteractionHand.values()) {
+            // Mirrors Minecraft#startUseItem: the animation comes from the stack in hand before it is used
+            SwingAnimation interactAnimation = ctx.player().getItemInHand(hand).getInteractAnimation();
             if (ctx.playerController().processRightClickBlock(ctx.player(), ctx.world(), hand, (BlockHitResult) mouseOver) == InteractionResult.SUCCESS) {
-                ctx.player().swing(hand, SwingAnimation.DEFAULT, false);
+                ctx.player().swing(hand, interactAnimation, false);
                 return;
             }
             if (!ctx.player().getItemInHand(hand).isEmpty() && ctx.playerController().processRightClick(ctx.player(), ctx.world(), hand) == InteractionResult.SUCCESS) {

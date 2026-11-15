@@ -266,8 +266,21 @@ public class MovementParkour extends Movement {
             state.setInput(Input.SNEAK, true);
         }
 
-        MovementHelper.moveTowards(ctx, state, dest);
+        if (ctx.player().onGround() && ctx.playerFeet().equals(src)) {
+            MovementHelper.moveTowards(ctx, state, dest);
+        } else {
+            // Correct landing position with movement inputs, not a camera reversal past its center.
+            MovementHelper.moveTowardsWithSlightRotation(ctx, state, dest);
+            if (!state.getInputStates().getOrDefault(Input.MOVE_FORWARD, false)) {
+                state.setInput(Input.SPRINT, false);
+            }
+        }
         if (ctx.playerFeet().equals(dest)) {
+            if (ctx.player().getDeltaMovement().y <= 0) {
+                // Once above the landing block, coast instead of accelerating through it.
+                state.setInput(Input.MOVE_FORWARD, false);
+                state.setInput(Input.SPRINT, false);
+            }
             Block d = BlockStateInterface.getBlock(ctx, dest);
             if (d == Blocks.VINE || d == Blocks.LADDER) {
                 // it physically hurt me to add support for parkour jumping onto a vine
@@ -302,9 +315,9 @@ public class MovementParkour extends Movement {
             } else if (!ctx.playerFeet().equals(dest.relative(direction, -1))) {
                 state.setInput(Input.SPRINT, false);
                 if (ctx.playerFeet().equals(src.relative(direction, -1))) {
-                    MovementHelper.moveTowards(ctx, state, src);
+                    MovementHelper.moveTowardsWithSlightRotation(ctx, state, src);
                 } else {
-                    MovementHelper.moveTowards(ctx, state, src.relative(direction, -1));
+                    MovementHelper.moveTowardsWithSlightRotation(ctx, state, src.relative(direction, -1));
                 }
             }
         }
