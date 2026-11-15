@@ -28,8 +28,11 @@ allprojects {
     version = rootProject.mod_version
     group = rootProject.maven_group
 
+    def sourceCompatibility = JavaVersion.toVersion(project.java_version)
+
     java {
-        sourceCompatibility = JavaVersion.toVersion(project.java_version)
+        sourceCompatibility = sourceCompatibility
+        targetCompatibility = sourceCompatibility
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(sourceCompatibility.majorVersion.toInteger()))
         }
@@ -84,6 +87,8 @@ allprojects {
 
         mappings {
             mojmap()
+
+            devFallbackNamespace "official"
         }
     }
 
@@ -139,6 +144,22 @@ dependencies {
 
 jar {
     from sourceSets.main.output, sourceSets.launch.output, sourceSets.api.output
+}
+
+publishing {
+    publications {
+        mavenCommon(MavenPublication) {
+            artifactId = rootProject.archives_base_name + "-common"
+            artifact(jar)
+        }
+    }
+
+    repositories {
+        maven {
+            name = "localBaritone"
+            url = rootProject.layout.buildDirectory.dir("local-repo")
+        }
+    }
 }
 
 javadoc {

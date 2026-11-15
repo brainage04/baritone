@@ -20,15 +20,13 @@ import baritone.gradle.task.ProguardTask
 //import baritone.gradle.task.TweakerJsonAssembler
 
 plugins {
-    id "com.github.johnrengelman.shadow" version "8.1.1"
+    id "com.gradleup.shadow" version "9.4.1"
 }
 
 unimined.minecraft {
-    runs {
-        config("client") {
-            mainClass = "net.minecraft.launchwrapper.Launch"
-            args.addAll(["--tweakClass", "baritone.launch.tweaker.BaritoneTweaker"])
-        }
+    runs.client = {
+        mainClass = "net.minecraft.launchwrapper.Launch"
+        args.addAll(["--tweakClass", "baritone.launch.tweaker.BaritoneTweaker"])
     }
 }
 
