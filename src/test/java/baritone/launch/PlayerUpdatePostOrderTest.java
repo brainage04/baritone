@@ -27,10 +27,12 @@ import java.lang.classfile.instruction.InvokeInstruction;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -46,13 +48,11 @@ public class PlayerUpdatePostOrderTest {
     @Test
     public void playerUpdatePostFiresAfterTheMovePacketIsSent() throws IOException {
         String postTarget = postUpdateTarget();
+        assertEquals("POST player update is injected after " + postTarget + ", not after " + SEND_CHANGES
+                + "; the server would get the rotation LookBehavior restores at POST", SEND_CHANGES, postTarget);
         List<String> calls = tickCalls();
-        int post = calls.indexOf(postTarget);
-        int send = calls.indexOf(SEND_CHANGES);
-        assertTrue("Minecraft#tick does not call " + postTarget, post >= 0);
-        assertTrue("Minecraft#tick does not call " + SEND_CHANGES, send >= 0);
-        assertTrue("POST player update is injected after " + postTarget + ", which Minecraft#tick calls before "
-                + SEND_CHANGES + "; the server would get the rotation LookBehavior restores at POST", post >= send);
+        assertEquals("Minecraft#tick must call " + SEND_CHANGES + " exactly once, or the injection point is ambiguous",
+                1, Collections.frequency(calls, SEND_CHANGES));
     }
 
     private static String postUpdateTarget() throws IOException {
