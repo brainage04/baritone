@@ -62,6 +62,18 @@ public class ClimbableTagTest {
         bindClimbable(Blocks.OAK_PLANKS);
         assertTrue(MovementHelper.isClimbable(Blocks.OAK_PLANKS));
         assertFalse("ladder is not in this tag", MovementHelper.isClimbable(Blocks.LADDER));
+
+        restoreVanillaTag();
+        assertTrue(MovementHelper.isClimbable(Blocks.LADDER));
+        assertFalse(MovementHelper.isClimbable(Blocks.OAK_PLANKS));
+    }
+
+    /**
+     * The registry is shared by every test in the JVM, so put the vanilla members back (climbable.json).
+     */
+    private static void restoreVanillaTag() {
+        bindClimbable(Blocks.LADDER, Blocks.VINE, Blocks.SCAFFOLDING, Blocks.WEEPING_VINES, Blocks.WEEPING_VINES_PLANT,
+                Blocks.TWISTING_VINES, Blocks.TWISTING_VINES_PLANT, Blocks.CAVE_VINES, Blocks.CAVE_VINES_PLANT);
     }
 
     @SuppressWarnings("unchecked")
