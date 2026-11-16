@@ -49,13 +49,34 @@ public class BlockPlaceHelper {
         for (InteractionHand hand : InteractionHand.values()) {
             // Mirrors Minecraft#startUseItem: the animation comes from the stack in hand before it is used
             SwingAnimation interactAnimation = ctx.player().getItemInHand(hand).getInteractAnimation();
-            if (ctx.playerController().processRightClickBlock(ctx.player(), ctx.world(), hand, (BlockHitResult) mouseOver) == InteractionResult.SUCCESS) {
-                ctx.player().swing(hand, interactAnimation, false);
+            InteractionResult blockResult = ctx.playerController().processRightClickBlock(ctx.player(), ctx.world(), hand, (BlockHitResult) mouseOver);
+            if (blockResult instanceof InteractionResult.Success) {
+                if (shouldSwing(blockResult)) {
+                    ctx.player().swing(hand, interactAnimation, false);
+                }
                 return;
             }
-            if (!ctx.player().getItemInHand(hand).isEmpty() && ctx.playerController().processRightClick(ctx.player(), ctx.world(), hand) == InteractionResult.SUCCESS) {
+            if (blockResult instanceof InteractionResult.Fail) {
+                // Minecraft#startUseItem stops at Fail instead of trying the next hand
                 return;
+            }
+            if (!ctx.player().getItemInHand(hand).isEmpty()) {
+                InteractionResult itemResult = ctx.playerController().processRightClick(ctx.player(), ctx.world(), hand);
+                if (itemResult instanceof InteractionResult.Success) {
+                    if (shouldSwing(itemResult)) {
+                        ctx.player().swing(hand, interactAnimation, false);
+                    }
+                    return;
+                }
             }
         }
+    }
+
+    /**
+     * Minecraft#startUseItem swings only for a Success whose swing source is PREDICTED; SERVER_ONLY means the server
+     * sends the animation and NONE means nothing swings (Minecraft.java:1716-1743).
+     */
+    static boolean shouldSwing(InteractionResult result) {
+        return result instanceof InteractionResult.Success success && success.swingSource() == InteractionResult.SwingSource.PREDICTED;
     }
 }
