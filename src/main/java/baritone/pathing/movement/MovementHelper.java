@@ -753,6 +753,11 @@ public interface MovementHelper extends ActionCosts, Helper {
         return !blockState.getFluidState().isEmpty();
     }
 
+    // RED: the rule before the fix, any water including a waterfall.
+    static boolean canPickUpWater(BlockState state) {
+        return state.getFluidState().getType() instanceof WaterFluid;
+    }
+
     static boolean possiblyFlowing(BlockState state) {
         FluidState fluidState = state.getFluidState();
         return fluidState.getType() instanceof FlowingFluid
