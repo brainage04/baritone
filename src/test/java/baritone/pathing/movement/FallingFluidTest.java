@@ -74,6 +74,14 @@ public class FallingFluidTest {
     }
 
     @Test
+    public void fallingWaterIsPossiblyFlowing() {
+        // BuilderProcess reads possiblyFlowing to tell a replaceable source (false) from a liquid it must report (true).
+        // A waterfall is not a source, so the builder must not treat it as one.
+        assertTrue(MovementHelper.possiblyFlowing(fallingWater()));
+        assertFalse(MovementHelper.possiblyFlowing(sourceWater()));
+    }
+
+    @Test
     public void cacheStoresSourceWaterAsWater() throws ReflectiveOperationException {
         assertEquals(PathingBlockType.WATER, cachedType(sourceWater()));
     }
