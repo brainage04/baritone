@@ -21,8 +21,10 @@ import baritone.Baritone;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.effect.MobEffectUtil;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Item;
@@ -61,6 +63,11 @@ public class ToolSet {
     private final LocalPlayer player;
 
     /**
+     * The player-side break-speed factors, read once: they do not depend on the block or the tool.
+     */
+    private final double playerMultiplier;
+
+    /**
      * Used for evaluating the material cost of a tool.
      * see {@link #getMaterialCost(ItemStack)}
      * Prefer tools with lower material cost (lower index in this list).
@@ -77,14 +84,45 @@ public class ToolSet {
     public ToolSet(LocalPlayer player) {
         breakStrengthCache = new HashMap<>();
         this.player = player;
+        this.playerMultiplier = playerSpeedMultiplier(player);
+        backendCalculation = this::getBestDestructionTime;
+    }
 
-        if (Baritone.settings().considerPotionEffects.value) {
-            double amplifier = potionAmplifier();
-            Function<Double, Double> amplify = x -> amplifier * x;
-            backendCalculation = amplify.compose(this::getBestDestructionTime);
-        } else {
-            backendCalculation = this::getBestDestructionTime;
+    /**
+     * The player-side factors of {@code Player#getDestroySpeed} (Player.java:583-608): dig speed effects, the
+     * BLOCK_BREAK_SPEED attribute, SUBMERGED_MINING_SPEED while the eye is in water, and the /5 airborne penalty.
+     * They do not depend on which tool is used, so they are read once per ToolSet.
+     */
+    private static double playerSpeedMultiplier(LocalPlayer player) {
+        boolean considerEffects = Baritone.settings().considerPotionEffects.value;
+        return playerSpeedMultiplier(
+                considerEffects && MobEffectUtil.hasDigSpeed(player),
+                considerEffects ? MobEffectUtil.getDigSpeedAmplification(player) : 0,
+                considerEffects && player.hasEffect(MobEffects.MINING_FATIGUE) ? player.getEffect(MobEffects.MINING_FATIGUE).getAmplifier() : -1,
+                (float) player.getAttributeValue(Attributes.BLOCK_BREAK_SPEED),
+                (float) player.getAttributeValue(Attributes.SUBMERGED_MINING_SPEED),
+                player.isEyeInFluid(FluidTags.WATER),
+                player.onGround());
+    }
+
+    static double playerSpeedMultiplier(boolean hasDigSpeed, int digSpeedAmplification, int fatigueAmplifier,
+                                        float blockBreakSpeed, float submergedMiningSpeed,
+                                        boolean eyeInWater, boolean onGround) {
+        double speed = 1;
+        if (hasDigSpeed) {
+            speed *= 1 + (digSpeedAmplification + 1) * 0.2;
         }
+        if (fatigueAmplifier >= 0) {
+            speed *= Math.pow(0.3, fatigueAmplifier + 1);
+        }
+        speed *= blockBreakSpeed;
+        if (eyeInWater) {
+            speed *= submergedMiningSpeed;
+        }
+        if (!onGround) {
+            speed /= 5;
+        }
+        return speed;
     }
 
     /**
@@ -189,7 +227,7 @@ public class ToolSet {
      */
     private double getBestDestructionTime(Block b) {
         ItemStack stack = player.getInventory().getItem(getBestSlot(b, false, true));
-        return calculateSpeedVsBlock(stack, b.defaultBlockState()) * avoidanceMultiplier(b);
+        return calculateSpeedVsBlock(stack, b.defaultBlockState()) * playerMultiplier * avoidanceMultiplier(b);
     }
 
     private double avoidanceMultiplier(Block b) {
@@ -236,34 +274,5 @@ public class ToolSet {
         } else {
             return speed / 100;
         }
-    }
-
-    /**
-     * Calculates any modifier to breaking time based on status effects.
-     *
-     * @return a double to scale block breaking speed.
-     */
-    private double potionAmplifier() {
-        double speed = 1;
-        if (player.hasEffect(MobEffects.HASTE)) {
-            speed *= 1 + (player.getEffect(MobEffects.HASTE).getAmplifier() + 1) * 0.2;
-        }
-        if (player.hasEffect(MobEffects.MINING_FATIGUE)) {
-            switch (player.getEffect(MobEffects.MINING_FATIGUE).getAmplifier()) {
-                case 0:
-                    speed *= 0.3;
-                    break;
-                case 1:
-                    speed *= 0.09;
-                    break;
-                case 2:
-                    speed *= 0.0027; // you might think that 0.09*0.3 = 0.027 so that should be next, that would make too much sense. it's 0.0027.
-                    break;
-                default:
-                    speed *= 0.00081;
-                    break;
-            }
-        }
-        return speed;
     }
 }
