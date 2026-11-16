@@ -59,9 +59,39 @@ public class BucketPickupTest {
         assertFalse(MovementHelper.canPickUpWater(falling));
     }
 
+    /**
+     * SimpleWaterloggedBlock#pickupBlock (SimpleWaterloggedBlock.java:39-45) replaces a waterlogged block with the
+     * dry one and hands back a water bucket, so a waterlogged stair and slab do fill an empty bucket.
+     */
     @Test
-    public void waterloggedBlockDoesNotFillABucket() {
+    public void waterloggedStairFillsABucket() {
         BlockState waterlogged = Blocks.OAK_STAIRS.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true);
-        assertFalse(MovementHelper.canPickUpWater(waterlogged));
+        assertTrue(MovementHelper.canPickUpWater(waterlogged));
+    }
+
+    @Test
+    public void waterloggedSlabFillsABucket() {
+        BlockState waterlogged = Blocks.OAK_SLAB.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true);
+        assertTrue(MovementHelper.canPickUpWater(waterlogged));
+    }
+
+    @Test
+    public void dryWaterloggedBlockDoesNotFillABucket() {
+        BlockState dry = Blocks.OAK_STAIRS.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, false);
+        assertFalse(MovementHelper.canPickUpWater(dry));
+    }
+
+    /**
+     * BubbleColumnBlock#pickupBlock (BubbleColumnBlock.java:196-199) returns a water bucket unconditionally.
+     */
+    @Test
+    public void bubbleColumnFillsABucket() {
+        assertTrue(MovementHelper.canPickUpWater(Blocks.BUBBLE_COLUMN.defaultBlockState()));
+    }
+
+    @Test
+    public void lavaDoesNotFillABucket() {
+        assertFalse(MovementHelper.canPickUpWater(Blocks.LAVA.defaultBlockState()));
+        assertFalse(MovementHelper.canPickUpWater(Blocks.LAVA_CAULDRON.defaultBlockState()));
     }
 }
