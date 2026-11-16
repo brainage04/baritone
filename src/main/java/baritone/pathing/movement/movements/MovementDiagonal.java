@@ -108,6 +108,12 @@ public class MovementDiagonal extends Movement {
         return ImmutableSet.of(src, dest, diagA, diagB);
     }
 
+    // The rule before the fix: reads cuttingOver1 twice, so the second corner never blocks on its own.
+    static boolean crossesMagma(boolean allowWalkOnMagmaBlocks, BlockState corner1, BlockState corner2) {
+        return (!allowWalkOnMagmaBlocks && corner1.is(Blocks.MAGMA_BLOCK)) || MovementHelper.isLava(corner1)
+                || (!allowWalkOnMagmaBlocks && corner1.is(Blocks.MAGMA_BLOCK)) || MovementHelper.isLava(corner2);
+    }
+
     public static void cost(CalculationContext context, int x, int y, int z, int destX, int destZ, MutableMoveResult res) {
         if (!MovementHelper.canWalkThrough(context, destX, y + 1, destZ)) {
             return;
@@ -162,11 +168,8 @@ public class MovementDiagonal extends Movement {
             sneaking = true;
         }
         BlockState cuttingOver1 = context.get(x, y - 1, destZ);
-        if ((!context.allowWalkOnMagmaBlocks && cuttingOver1.is(Blocks.MAGMA_BLOCK)) || MovementHelper.isLava(cuttingOver1)) {
-            return;
-        }
         BlockState cuttingOver2 = context.get(destX, y - 1, z);
-        if ((!context.allowWalkOnMagmaBlocks && cuttingOver1.is(Blocks.MAGMA_BLOCK)) || MovementHelper.isLava(cuttingOver2)) {
+        if (crossesMagma(context.allowWalkOnMagmaBlocks, cuttingOver1, cuttingOver2)) {
             return;
         }
         boolean water = false;
