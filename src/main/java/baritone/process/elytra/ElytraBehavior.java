@@ -48,11 +48,11 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.Fireworks;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkSource;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -136,7 +136,9 @@ public final class ElytraBehavior implements Helper {
 
         this.npfContext = npf;
 
-        if(ctx.world().dimension() == Level.NETHER) {
+        // A dimension with a ceiling caps the normal finder at its roof, so the build-limit finder is the only one that
+        // can route above it. The game answers "has a roof" from the dimension type, not from the dimension key.
+        if (ctx.world().dimensionType().hasCeiling()) {
             this.pathFinder = Baritone.settings().elytraAllowAboveRoof.value && Baritone.settings().elytraAllowAboveBuildLimit.value
                     ? new BuildLimitPathFinder(ctx, npfContext)
                     : npfContext;
@@ -1346,12 +1348,15 @@ public final class ElytraBehavior implements Helper {
 
     // so we don't get stuck trying to pathfind through the roof
     private BetterBlockPos fixDestination(BetterBlockPos dst) {
-        if (ctx.world().dimension() == Level.NETHER) {
-            if (ctx.player().getY() >= 128 && dst.y < 128) {
-                return new BetterBlockPos(dst.x, 128, dst.z);
+        DimensionType dimType = ctx.world().dimensionType();
+        if (dimType.hasCeiling()) {
+            int roofY = ElytraProcess.roofY(dimType);
+            int midY = dimType.minY() + dimType.logicalHeight() / 2;
+            if (ctx.player().getY() >= roofY && dst.y < roofY) {
+                return new BetterBlockPos(dst.x, roofY, dst.z);
             }
-            else if (ctx.player().getY() < 128 && dst.y >= 128) {
-                return new BetterBlockPos(dst.x, 64, dst.z);
+            else if (ctx.player().getY() < roofY && dst.y >= roofY) {
+                return new BetterBlockPos(dst.x, midY, dst.z);
             }
         }
         return dst;
