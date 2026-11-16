@@ -788,9 +788,9 @@ public interface MovementHelper extends ActionCosts, Helper {
     }
 
     static boolean possiblyFlowing(BlockState state) {
+        // Not the amount: falling water reports amount 8, the same as a source block, so only isSource separates them.
         FluidState fluidState = state.getFluidState();
-        return fluidState.getType() instanceof FlowingFluid
-                && fluidState.getType().getAmount(fluidState) != 8;
+        return fluidState.getType() instanceof FlowingFluid && !fluidState.isSource();
     }
 
     static boolean isFlowing(int x, int y, int z, BlockState state, BlockStateInterface bsi) {
@@ -798,7 +798,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         if (!(fluidState.getType() instanceof FlowingFluid)) {
             return false;
         }
-        if (fluidState.getType().getAmount(fluidState) != 8) {
+        if (!fluidState.isSource()) {
             return true;
         }
         return possiblyFlowing(bsi.get0(x + 1, y, z))
