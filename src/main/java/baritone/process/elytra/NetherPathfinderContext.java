@@ -82,7 +82,11 @@ public final class NetherPathfinderContext implements IElytraPathFinder {
         else if (this.dimension == Level.END) dim = NetherPathfinder.Dimension.END;
         else dim = NetherPathfinder.Dimension.OVERWORLD;
         int height = Math.min(world.dimensionType().height(), 384);
-        if (!Baritone.settings().elytraAllowAboveRoof.value && dim == NetherPathfinder.Dimension.NETHER) height = Math.min(height, 128);
+        // A dimension with a ceiling caps the finder at its roof, the same bound ElytraProcess.isInBounds uses, so a
+        // goal the bounds accept is one the finder can reach.
+        if (!Baritone.settings().elytraAllowAboveRoof.value && world.dimensionType().hasCeiling()) {
+            height = Math.min(height, world.dimensionType().logicalHeight());
+        }
         this.maxHeight = height;
         this.context = new NetherPathfinder(seed, cache != null ? cache.toString() : null, dim, height);
         this.seed = seed;
