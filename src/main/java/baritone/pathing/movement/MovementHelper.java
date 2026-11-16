@@ -32,6 +32,7 @@ import baritone.utils.ToolSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -595,12 +596,12 @@ public interface MovementHelper extends ActionCosts, Helper {
      * because movements can end/start on these blocks despite them not being canWalkOn.
      */
     static boolean isClimbable(Block block) {
-        return block == Blocks.LADDER
-            || block == Blocks.VINE
-            || block == Blocks.WEEPING_VINES
-            || block == Blocks.WEEPING_VINES_PLANT
-            || block == Blocks.TWISTING_VINES
-            || block == Blocks.TWISTING_VINES_PLANT;
+        // LivingEntity#onClimbable (LivingEntity.java:1584-1592) asks this tag. Tag membership is per block, so any
+        // state of the block answers the same, and defaultBlockState is cached per block.
+        // Scaffolding is in the tag but is not a vine: it has a solid top unless the player sneaks
+        // (ScaffoldingBlock#getCollisionShape), so a player standing on it is standing, not hanging. Every caller here
+        // reads "climbable" as "no solid top under me", and the fall planner resets the fall height at one.
+        return block.defaultBlockState().is(BlockTags.CLIMBABLE) && !(block instanceof ScaffoldingBlock);
     }
 
     static double getMiningDurationTicks(CalculationContext context, int x, int y, int z, boolean includeFalling) {
