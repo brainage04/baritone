@@ -787,6 +787,15 @@ public interface MovementHelper extends ActionCosts, Helper {
         return !blockState.getFluidState().isEmpty();
     }
 
+    // BucketItem#use fills an empty bucket from any BucketPickup block whose pickupBlock returns a stack. pickupBlock
+    // changes the world, so it cannot be called as a query; the water-source fluid is the stand-in, and it is exact
+    // for the four implementors: LiquidBlock only at LEVEL 0, SimpleWaterloggedBlock when WATERLOGGED,
+    // BubbleColumnBlock always, PowderSnowBlock for a powder snow bucket. Seagrass and kelp hold a water source but are
+    // not BucketPickup, so the instanceof is what refuses them.
+    static boolean canPickUpWater(BlockState state) {
+        return state.getBlock() instanceof BucketPickup && state.getFluidState().isSourceOfType(Fluids.WATER);
+    }
+
     static boolean possiblyFlowing(BlockState state) {
         FluidState fluidState = state.getFluidState();
         return fluidState.getType() instanceof FlowingFluid
