@@ -116,7 +116,8 @@ public class CalculationContext {
                 new BlockStateInterface(baritone.getPlayerContext(), forUseOnAnotherThread),
                 new ToolSet(baritone.getPlayerContext().player()),
                 Baritone.settings().allowPlace.value && ((Baritone) baritone).getInventoryBehavior().hasGenericThrowaway(),
-                Baritone.settings().allowWaterBucketFall.value && Inventory.isHotbarSlot(baritone.getPlayerContext().player().getInventory().findSlotMatchingItem(STACK_BUCKET_WATER)) && baritone.getPlayerContext().world().dimension() != Level.NETHER,
+                Baritone.settings().allowWaterBucketFall.value && Inventory.isHotbarSlot(baritone.getPlayerContext().player().getInventory().findSlotMatchingItem(STACK_BUCKET_WATER))
+                        && MovementHelper.waterBucketWorks(baritone.getPlayerContext().world().dimensionType()),
                 Baritone.settings().allowSprint.value && baritone.getPlayerContext().player().getFoodData().getFoodLevel() > 6,
                 frostWalkerLevel(baritone.getPlayerContext().player()),
                 waterSpeedMultiplier(baritone.getPlayerContext().player())

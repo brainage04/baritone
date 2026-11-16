@@ -46,6 +46,7 @@ import net.minecraft.world.level.block.state.properties.DoorHingeSide;
 import net.minecraft.world.level.block.state.properties.Half;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.level.block.state.properties.StairsShape;
+import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
@@ -740,6 +741,16 @@ public interface MovementHelper extends ActionCosts, Helper {
     static boolean isWater(BlockState state) {
         Fluid f = state.getFluidState().getType();
         return f == Fluids.WATER || f == Fluids.FLOWING_WATER;
+    }
+
+    /**
+     * Whether a placed water bucket survives here. BucketItem#emptyContents (BucketItem.java:120) turns water into
+     * smoke in a dimension whose type is ultraWarm, which is the Nether's. The dimension type is what the game asks,
+     * so a datapack dimension that sets ultra_warm answers the same as the Nether and a Nether clone that does not
+     * keeps the bucket.
+     */
+    static boolean waterBucketWorks(DimensionType dimType) {
+        return !dimType.ultraWarm();
     }
 
     /**
