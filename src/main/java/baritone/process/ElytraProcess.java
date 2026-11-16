@@ -45,6 +45,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -583,9 +584,26 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         return pos.getY() >= minY && pos.getY() < maxY;
     }
 
+    /**
+     * A block the player can land on. The list is the natural floor of each dimension plus the blocks a player builds
+     * with, and the two stone tags are the game's own answer for the floor: {@code BASE_STONE_OVERWORLD} is stone,
+     * granite, diorite, andesite, tuff and deepslate, and {@code BASE_STONE_NETHER} is netherrack, basalt and
+     * blackstone. Naming the blocks instead left basalt, blackstone, tuff, andesite, diorite and granite out, so a
+     * flight over a basalt delta, a blackstone patch or a tuff region found no landing spot at all.
+     * <p>
+     * Nether bricks stay behind {@code elytraAllowLandOnNetherFortress}, because a fortress is a hostile structure
+     * rather than ground.
+     */
     private boolean isSafeBlock(Block block) {
-        return block == Blocks.NETHERRACK || block == Blocks.GRAVEL || block == Blocks.SOUL_SAND || block == Blocks.SOUL_SOIL || (block == Blocks.NETHER_BRICKS && Baritone.settings().elytraAllowLandOnNetherFortress.value)
-                || block == Blocks.STONE || block == Blocks.DEEPSLATE || block == Blocks.GRASS_BLOCK || block == Blocks.SAND || block == Blocks.RED_SAND || block == Blocks.TERRACOTTA
+        return isSafeBlock(block, Baritone.settings().elytraAllowLandOnNetherFortress.value);
+    }
+
+    static boolean isSafeBlock(Block block, boolean allowNetherBricks) {
+        return block.defaultBlockState().is(BlockTags.BASE_STONE_OVERWORLD)
+                || block.defaultBlockState().is(BlockTags.BASE_STONE_NETHER)
+                || block == Blocks.GRAVEL || block == Blocks.SOUL_SAND || block == Blocks.SOUL_SOIL
+                || (block == Blocks.NETHER_BRICKS && allowNetherBricks)
+                || block == Blocks.GRASS_BLOCK || block == Blocks.SAND || block == Blocks.RED_SAND || block == Blocks.TERRACOTTA
                 || block == Blocks.SNOW || block == Blocks.ICE || block == Blocks.MYCELIUM || block == Blocks.PODZOL
                 || block == Blocks.DARK_OAK_LEAVES || block == Blocks.JUNGLE_LEAVES
                 || block == Blocks.END_STONE || block == Blocks.BEDROCK
@@ -644,14 +662,14 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
                 return null;
             }
             checkedSpots.add(mut.asLong());
-            Block block = ctx.world().getBlockState(mut).getBlock();
+            BlockState state = ctx.world().getBlockState(mut);
 
-            if (isSafeBlock(block)) {
+            if (isSafeBlock(mut)) {
                 if (!isAtEdge(mut)) {
                     return new BetterBlockPos(mut);
                 }
                 return null;
-            } else if (block != Blocks.AIR) {
+            } else if (!state.isAir()) {
                 return null;
             }
             mut.set(mut.getX(), mut.getY() - 1, mut.getZ());
