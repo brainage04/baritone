@@ -22,6 +22,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
@@ -65,14 +66,55 @@ public class ElytraLandingBlockTest {
         assertLandable(Blocks.SOUL_SAND);
     }
 
+    /**
+     * A snow layer's collision shape is a column 2 * (LAYERS - 1) pixels tall (SnowLayerBlock.java:46-48), so its
+     * Direction.UP face is empty for every layer below 8. A player still stands on it, and a snow-covered plain is
+     * the commonest place to land, so every layer count must be landable.
+     */
+    @Test
+    public void acceptsEverySnowLayer() {
+        for (int layers = 1; layers <= SnowLayerBlock.MAX_HEIGHT; layers++) {
+            BlockState snow = Blocks.SNOW.defaultBlockState().setValue(SnowLayerBlock.LAYERS, layers);
+            assertTrue("snow with " + layers + " layers must be landable",
+                    ElytraProcess.isSafeLandingBlock(level(snow), BlockPos.ZERO, false));
+        }
+    }
+
     @Test
     public void rejectsWhatCannotBeStoodOn() {
         assertNotLandable(Blocks.AIR);
         assertNotLandable(Blocks.WATER);
         assertNotLandable(Blocks.LAVA);
-        assertNotLandable(Blocks.CACTUS);
         assertNotLandable(Blocks.MAGMA_BLOCK);
         assertNotLandable(Blocks.COBWEB);
+        assertNotLandable(Blocks.POWDER_SNOW);
+        assertNotLandable(Blocks.CACTUS);
+        assertNotLandable(Blocks.SWEET_BERRY_BUSH);
+        assertNotLandable(Blocks.CAMPFIRE);
+        assertNotLandable(Blocks.SOUL_CAMPFIRE);
+        assertNotLandable(Blocks.HOPPER);
+        assertNotLandable(Blocks.CAULDRON);
+        assertNotLandable(Blocks.OAK_FENCE);
+        assertNotLandable(Blocks.LADDER);
+    }
+
+    @Test
+    public void acceptsTheBlocksAPlayerStandsOn() {
+        assertLandable(Blocks.SNOW_BLOCK);
+        assertLandable(Blocks.OAK_LEAVES);
+        assertLandable(Blocks.ICE);
+        assertLandable(Blocks.SAND);
+        assertLandable(Blocks.GRASS_BLOCK);
+        assertLandable(Blocks.BEDROCK);
+        assertLandable(Blocks.OBSIDIAN);
+        assertLandable(Blocks.COBBLESTONE);
+        assertLandable(Blocks.GRAVEL);
+        assertLandable(Blocks.SOUL_SOIL);
+        assertLandable(Blocks.TERRACOTTA);
+        assertLandable(Blocks.MYCELIUM);
+        assertLandable(Blocks.PODZOL);
+        assertLandable(Blocks.DARK_OAK_LEAVES);
+        assertLandable(Blocks.JUNGLE_LEAVES);
     }
 
     @Test
@@ -92,8 +134,13 @@ public class ElytraLandingBlockTest {
     }
 
     private static BlockGetter level(net.minecraft.world.level.block.Block block) {
+        return level(block.defaultBlockState());
+    }
+
+    private static BlockGetter level(BlockState state) {
         Map<BlockPos, BlockState> states = new HashMap<>();
-        states.put(BlockPos.ZERO, block.defaultBlockState());
+        states.put(BlockPos.ZERO, state);
+        states.put(BlockPos.ZERO.below(), Blocks.STONE.defaultBlockState());
         return new BlockGetter() {
             @Override
             public BlockEntity getBlockEntity(BlockPos pos) {

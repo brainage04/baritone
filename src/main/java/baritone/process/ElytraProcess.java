@@ -37,7 +37,6 @@ import baritone.api.utils.Rotation;
 import baritone.api.utils.RotationUtils;
 import baritone.api.utils.input.Input;
 import baritone.pathing.movement.CalculationContext;
-import baritone.pathing.movement.MovementHelper;
 import baritone.pathing.movement.movements.MovementFall;
 import baritone.process.elytra.*;
 import baritone.utils.BaritoneProcessHelper;
@@ -57,6 +56,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.MagmaBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkSource;
@@ -64,6 +64,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.*;
 import java.util.concurrent.Semaphore;
@@ -594,25 +595,39 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
     }
 
     /**
-     * A block the player can land on: its top face is a full square, so the player does not slip off the edge, and
-     * standing on it does no harm. Asking the shapes covers every block 26.3 has (basalt, blackstone, tuff, andesite,
-     * mud and the rest of {@code BlockTags.BASE_STONE_OVERWORLD}/{@code BASE_STONE_NETHER}) instead of a copied list.
+     * A block the player can land on: its own top surface is a full square, so the player does not slip off the edge,
+     * and standing on it does no harm. Asking the shapes covers every block 26.3 has (basalt, blackstone, tuff,
+     * andesite, mud and the rest of {@code BlockTags.BASE_STONE_OVERWORLD}/{@code BASE_STONE_NETHER}) instead of a
+     * copied list.
      * <p>
-     * The support shape is the game's own "something can stand on this" answer (SupportType.FULL, Block.java:342-349),
-     * which is what makes soul sand landable despite its 14/16 collision box (SoulSandBlock.java:22-24). Leaves report
-     * an empty support shape but a full collision box, and landing on a canopy is intended, so the collision face counts
-     * too. Magma is the one full block that hurts to stand on (MagmaBlock.java:9-17); cactus, cobweb, powder snow and
-     * the fluids fail both shape tests.
+     * The square is measured at the shape's own top, not at y=1. A snow layer's collision shape is
+     * {@code SHAPES[LAYERS - 1]}, a column {@code 2 * (LAYERS - 1)} pixels tall (SnowLayerBlock.java:46-48), so
+     * {@code Direction.UP}'s face is empty for every layer below 8 even though the player stands on it; a layer of one
+     * has an empty collision shape and is held up by the block below, which is why the support shape
+     * ({@code SHAPES[LAYERS]}, SnowLayerBlock.java:51-53) answers for it. A hopper or cauldron reaches y=1 but its top
+     * face is a ring, and a cactus is a 14/16 column, so neither counts.
+     * <p>
+     * Magma (MagmaBlock.java:16-21) and a lit campfire (CampfireBlock.java:112-117) are the two shapes that pass the
+     * square test and still hurt the player standing on them; cactus, powder snow, cobweb, sweet berry and the fluids
+     * fail it. Nether bricks stay behind {@code elytraAllowLandOnNetherFortress}.
      */
     static boolean isSafeLandingBlock(BlockGetter level, BlockPos pos, boolean allowNetherBricks) {
         BlockState state = level.getBlockState(pos);
         if (state.is(Blocks.NETHER_BRICKS) && !allowNetherBricks) {
             return false;
         }
-        return state.getFluidState().isEmpty()
-                && !(state.getBlock() instanceof MagmaBlock)
-                && (state.isFaceSturdy(level, pos, Direction.UP)
-                    || Block.isFaceFull(state.getCollisionShape(level, pos), Direction.UP));
+        if (!state.getFluidState().isEmpty()
+                || state.getBlock() instanceof MagmaBlock
+                || (state.getBlock() instanceof CampfireBlock && state.getValue(CampfireBlock.LIT))) {
+            return false;
+        }
+        VoxelShape collision = state.getCollisionShape(level, pos);
+        VoxelShape surface = collision.isEmpty() ? state.getBlockSupportShape(level, pos) : collision;
+        if (surface.isEmpty()) {
+            return false;
+        }
+        double top = surface.max(Direction.Axis.Y);
+        return Block.isFaceFull(top >= 1.0 - 1.0E-7 ? surface : surface.move(0.0, 1.0 - top, 0.0), Direction.UP);
     }
 
     private boolean isSafeBlock(BlockPos pos) {
