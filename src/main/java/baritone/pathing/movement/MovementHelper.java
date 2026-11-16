@@ -753,9 +753,10 @@ public interface MovementHelper extends ActionCosts, Helper {
         return !blockState.getFluidState().isEmpty();
     }
 
-    // RED: the rule before the fix, any water including a waterfall.
+    // LiquidBlock#pickupBlock (LiquidBlock.java:230) returns a bucket only when the state's LEVEL is 0, a source:
+    // a waterfall's fluid state is not a source, and a waterlogged block is not a LiquidBlock.
     static boolean canPickUpWater(BlockState state) {
-        return state.getFluidState().getType() instanceof WaterFluid;
+        return state.getBlock() instanceof LiquidBlock && state.getFluidState().isSource();
     }
 
     static boolean possiblyFlowing(BlockState state) {
