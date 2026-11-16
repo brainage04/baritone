@@ -753,6 +753,15 @@ public interface MovementHelper extends ActionCosts, Helper {
         return !blockState.getFluidState().isEmpty();
     }
 
+    // BucketItem#use (BucketItem.java:73-90) fills an empty bucket from any BucketPickup block whose pickupBlock
+    // returns a stack, and the fluid there is a water source: LiquidBlock#pickupBlock (LiquidBlock.java:230-237) only
+    // when LEVEL is 0, SimpleWaterloggedBlock#pickupBlock (SimpleWaterloggedBlock.java:39-45) for a waterlogged
+    // stair or slab, BubbleColumnBlock#pickupBlock (BubbleColumnBlock.java:196-199) for a bubble column. A waterfall's
+    // fluid state is not a source, so it fills nothing.
+    static boolean canPickUpWater(BlockState state) {
+        return state.getBlock() instanceof BucketPickup && state.getFluidState().isSourceOfType(Fluids.WATER);
+    }
+
     static boolean possiblyFlowing(BlockState state) {
         return isFlowing(state.getFluidState());
     }
