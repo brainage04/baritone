@@ -34,6 +34,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.util.Mth;
 import net.minecraft.world.attribute.EnvironmentAttributeReader;
+import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
@@ -776,7 +777,7 @@ public interface MovementHelper extends ActionCosts, Helper {
      * server's value; it is positional, hence a position rather than getDimensionValue.
      */
     static boolean waterBucketWorks(EnvironmentAttributeReader attributes, BlockPos pos) {
-        return true;
+        return !attributes.getValue(EnvironmentAttributes.WATER_EVAPORATES, pos);
     }
 
     static boolean isBlockNormalCube(BlockState state) {
