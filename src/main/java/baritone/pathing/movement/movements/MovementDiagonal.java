@@ -108,10 +108,13 @@ public class MovementDiagonal extends Movement {
         return ImmutableSet.of(src, dest, diagA, diagB);
     }
 
-    // The rule before the fix: reads cuttingOver1 twice, so the second corner never blocks on its own.
+    /**
+     * Whether stepping through this diagonal passes over magma or lava. MagmaBlock#stepOn damages a living entity that
+     * does not sneak (MagmaBlock.java:16), so a magma corner is only allowed when the setting opts in.
+     */
     static boolean crossesMagma(boolean allowWalkOnMagmaBlocks, BlockState corner1, BlockState corner2) {
-        return (!allowWalkOnMagmaBlocks && corner1.is(Blocks.MAGMA_BLOCK)) || MovementHelper.isLava(corner1)
-                || (!allowWalkOnMagmaBlocks && corner1.is(Blocks.MAGMA_BLOCK)) || MovementHelper.isLava(corner2);
+        return MovementHelper.isLava(corner1) || MovementHelper.isLava(corner2)
+                || (!allowWalkOnMagmaBlocks && (corner1.is(Blocks.MAGMA_BLOCK) || corner2.is(Blocks.MAGMA_BLOCK)));
     }
 
     public static void cost(CalculationContext context, int x, int y, int z, int destX, int destZ, MutableMoveResult res) {
