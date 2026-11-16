@@ -459,14 +459,17 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
     }
 
     private boolean isSupportedPos(BlockPos pos) {
-        final boolean isNether = ctx.world().dimension() == Level.NETHER;
-        final int minY = ctx.world().dimensionType().minY();
-        final int maxY = (isNether && !Baritone.settings().elytraAllowAboveRoof.value) ? 127 : Math.min(minY + 384, ctx.world().dimensionType().height() + minY);
+        final DimensionType dimType = ctx.world().dimensionType();
+        final boolean hasCeiling = dimType.hasCeiling();
+        final int minY = dimType.minY();
+        final int maxY = hasCeiling && !Baritone.settings().elytraAllowAboveRoof.value
+                ? roofY(dimType)
+                : Math.min(minY + 384, dimType.height() + minY);
 
         final boolean aboveRoof = Baritone.settings().elytraAllowAboveRoof.value;
         final boolean aboveBuild = Baritone.settings().elytraAllowAboveBuildLimit.value;
 
-        final boolean enforceMaxY = isNether ? !(aboveRoof && aboveBuild) : !aboveBuild;
+        final boolean enforceMaxY = hasCeiling ? !(aboveRoof && aboveBuild) : !aboveBuild;
 
         if (pos.getY() < minY) {
             return false;
@@ -582,11 +585,25 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         }
     }
 
-    private static boolean isInBounds(Level dim, BlockPos pos) {
-        DimensionType dimType = dim.dimensionType();
+    /**
+     * The y of the bedrock roof of a dimension with a ceiling: {@code minY + logicalHeight - 1}, the value vanilla
+     * uses for the Nether roof (PortalForcer.java:59, ServerLevel#getLogicalHeight). 127 is that value only for the
+     * vanilla Nether, whose dimension type is minY 0, height 256, logicalHeight 128.
+     */
+    public static int roofY(DimensionType dimType) {
+        return dimType.minY() + dimType.logicalHeight() - 1;
+    }
+
+    static boolean isInBounds(DimensionType dimType, BlockPos pos, boolean allowAboveRoof) {
         int minY = dimType.minY();
-        int maxY = (dim.dimension() == Level.NETHER && !Baritone.settings().elytraAllowAboveRoof.value) ? 127 : Math.min(minY + 384, dimType.height() + minY);
+        int maxY = dimType.hasCeiling() && !allowAboveRoof
+                ? roofY(dimType)
+                : Math.min(minY + 384, dimType.height() + minY);
         return pos.getY() >= minY && pos.getY() < maxY;
+    }
+
+    private static boolean isInBounds(Level dim, BlockPos pos) {
+        return isInBounds(dim.dimensionType(), pos, Baritone.settings().elytraAllowAboveRoof.value);
     }
 
     private boolean isSafeBlock(Block block) {
