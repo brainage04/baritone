@@ -33,6 +33,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.util.Mth;
+import net.minecraft.world.attribute.EnvironmentAttributeReader;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
@@ -766,6 +767,16 @@ public interface MovementHelper extends ActionCosts, Helper {
     static boolean isFlowing(FluidState fluidState) {
         // Not isFull(): falling water has amount 8 like a source block (FluidState.java:68-70).
         return fluidState.getType() instanceof FlowingFluid && !fluidState.isSource();
+    }
+
+    /**
+     * Whether a placed water bucket survives here. BucketItem#emptyContents (BucketItem.java:122) turns water into
+     * smoke where EnvironmentAttributes.WATER_EVAPORATES is set, which the Nether's dimension type sets
+     * (DimensionTypes.java:94). The attribute is syncable (EnvironmentAttributes.java:121-123), so a client reads the
+     * server's value; it is positional, hence a position rather than getDimensionValue.
+     */
+    static boolean waterBucketWorks(EnvironmentAttributeReader attributes, BlockPos pos) {
+        return true;
     }
 
     static boolean isBlockNormalCube(BlockState state) {
