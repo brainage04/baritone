@@ -19,6 +19,7 @@ package baritone.pathing.movement;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -31,9 +32,12 @@ import net.minecraft.world.level.block.Blocks;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -52,37 +56,58 @@ public class ClimbableTagTest {
 
     @Test
     public void climbableFollowsTheTag() {
-        bindClimbable(Blocks.SCAFFOLDING, Blocks.CAVE_VINES, Blocks.CAVE_VINES_PLANT);
+        Map<TagKey<Block>, List<Holder<Block>>> before = snapshotTags();
+        // A second, unrelated tag rides along so the test can see what a rebind does to the tags it does not name.
+        bindTags(Map.of(
+                BlockTags.CLIMBABLE, holders(Blocks.SCAFFOLDING, Blocks.CAVE_VINES, Blocks.CAVE_VINES_PLANT),
+                BlockTags.LOGS, holders(Blocks.OAK_LOG)));
+        assertTrue("the second tag is bound", Blocks.OAK_LOG.defaultBlockState().is(BlockTags.LOGS));
         assertTrue("scaffolding is in BlockTags.CLIMBABLE", MovementHelper.isClimbable(Blocks.SCAFFOLDING));
         assertTrue("cave vines are in BlockTags.CLIMBABLE", MovementHelper.isClimbable(Blocks.CAVE_VINES));
         assertTrue("cave vine plants are in BlockTags.CLIMBABLE", MovementHelper.isClimbable(Blocks.CAVE_VINES_PLANT));
         assertFalse("oak planks are not in the tag", MovementHelper.isClimbable(Blocks.OAK_PLANKS));
 
-        // A second, different tag proves the answer comes from the tag and not from another hardcoded list.
+        // Different members prove the answer comes from the tag and not from another hardcoded list.
         bindClimbable(Blocks.OAK_PLANKS);
         assertTrue(MovementHelper.isClimbable(Blocks.OAK_PLANKS));
         assertFalse("ladder is not in this tag", MovementHelper.isClimbable(Blocks.LADDER));
+        assertFalse("apply() replaced the whole tag set, so the tag it did not name is gone",
+                Blocks.OAK_LOG.defaultBlockState().is(BlockTags.LOGS));
 
-        restoreVanillaTag();
-        assertTrue(MovementHelper.isClimbable(Blocks.LADDER));
-        assertFalse(MovementHelper.isClimbable(Blocks.OAK_PLANKS));
+        bindTags(before);
+        assertFalse("the restored tag does not hold oak planks", MovementHelper.isClimbable(Blocks.OAK_PLANKS));
+
+        // apply() hands the registry the map it was given and nothing else (MappedRegistry.java:445), and rebinds every
+        // holder's tag list from that map (:341-351). The registry is shared by every test in the JVM, so a binding
+        // that names one tag deletes every other tag for the tests that run after this one.
+        assertEquals("every block tag the JVM started with must still be bound", before, snapshotTags());
     }
 
-    /**
-     * The registry is shared by every test in the JVM, so put the vanilla members back (climbable.json).
-     */
-    private static void restoreVanillaTag() {
-        bindClimbable(Blocks.LADDER, Blocks.VINE, Blocks.SCAFFOLDING, Blocks.WEEPING_VINES, Blocks.WEEPING_VINES_PLANT,
-                Blocks.TWISTING_VINES, Blocks.TWISTING_VINES_PLANT, Blocks.CAVE_VINES, Blocks.CAVE_VINES_PLANT);
+    private static Map<TagKey<Block>, List<Holder<Block>>> snapshotTags() {
+        Map<TagKey<Block>, List<Holder<Block>>> snapshot = new LinkedHashMap<>();
+        for (HolderSet.Named<Block> tag : ((MappedRegistry<Block>) BuiltInRegistries.BLOCK).getTags().toList()) {
+            List<Holder<Block>> members = new ArrayList<>(tag.size());
+            for (Holder<Block> holder : tag) {
+                members.add(holder);
+            }
+            snapshot.put(tag.key(), members);
+        }
+        return snapshot;
+    }
+
+    private static void bindClimbable(Block... blocks) {
+        bindTags(Map.of(BlockTags.CLIMBABLE, holders(blocks)));
     }
 
     @SuppressWarnings("unchecked")
-    private static void bindClimbable(Block... blocks) {
-        List<Holder<Block>> holders = java.util.Arrays.stream(blocks)
+    private static List<Holder<Block>> holders(Block... blocks) {
+        return java.util.Arrays.stream(blocks)
                 .map(block -> (Holder<Block>) block.builtInRegistryHolder())
                 .toList();
-        Map<TagKey<Block>, List<Holder<Block>>> tags = Map.of(BlockTags.CLIMBABLE, holders);
-        MappedRegistry<Block> registry = (MappedRegistry<Block>) BuiltInRegistries.BLOCK;
-        registry.prepareTagReload(new TagLoader.LoadResult<>(Registries.BLOCK, tags)).apply();
+    }
+
+    private static void bindTags(Map<TagKey<Block>, List<Holder<Block>>> tags) {
+        ((MappedRegistry<Block>) BuiltInRegistries.BLOCK)
+                .prepareTagReload(new TagLoader.LoadResult<>(Registries.BLOCK, tags)).apply();
     }
 }
