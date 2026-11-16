@@ -48,7 +48,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.Fireworks;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkSource;
@@ -137,7 +136,9 @@ public final class ElytraBehavior implements Helper {
 
         this.npfContext = npf;
 
-        if(ctx.world().dimension() == Level.NETHER) {
+        // A dimension with a ceiling caps the normal finder at its roof, so the build-limit finder is the only one that
+        // can route above it. The game answers "has a roof" from the dimension type, not from the dimension key.
+        if (ctx.world().dimensionType().hasCeiling()) {
             this.pathFinder = Baritone.settings().elytraAllowAboveRoof.value && Baritone.settings().elytraAllowAboveBuildLimit.value
                     ? new BuildLimitPathFinder(ctx, npfContext)
                     : npfContext;
