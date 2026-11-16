@@ -37,6 +37,7 @@ import baritone.api.utils.Rotation;
 import baritone.api.utils.RotationUtils;
 import baritone.api.utils.input.Input;
 import baritone.pathing.movement.CalculationContext;
+import baritone.pathing.movement.MovementHelper;
 import baritone.pathing.movement.movements.MovementFall;
 import baritone.process.elytra.*;
 import baritone.utils.BaritoneProcessHelper;
@@ -45,15 +46,18 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.MagmaBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkSource;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -606,17 +610,30 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         }
     }
 
-    private boolean isSafeBlock(Block block) {
-        return block == Blocks.NETHERRACK || block == Blocks.GRAVEL || block == Blocks.SOUL_SAND || block == Blocks.SOUL_SOIL || (block == Blocks.NETHER_BRICKS && Baritone.settings().elytraAllowLandOnNetherFortress.value)
-                || block == Blocks.STONE || block == Blocks.DEEPSLATE || block == Blocks.GRASS_BLOCK || block == Blocks.SAND || block == Blocks.RED_SAND || block == Blocks.TERRACOTTA
-                || block == Blocks.SNOW || block == Blocks.ICE || block == Blocks.MYCELIUM || block == Blocks.PODZOL
-                || block == Blocks.DARK_OAK_LEAVES || block == Blocks.JUNGLE_LEAVES
-                || block == Blocks.END_STONE || block == Blocks.BEDROCK
-                || block == Blocks.OBSIDIAN || block == Blocks.COBBLESTONE;
+    /**
+     * A block the player can land on: its top face is a full square, so the player does not slip off the edge, and
+     * standing on it does no harm. Asking the shapes covers every block 26.3 has (basalt, blackstone, tuff, andesite,
+     * mud and the rest of {@code BlockTags.BASE_STONE_OVERWORLD}/{@code BASE_STONE_NETHER}) instead of a copied list.
+     * <p>
+     * The support shape is the game's own "something can stand on this" answer (SupportType.FULL, Block.java:342-349),
+     * which is what makes soul sand landable despite its 14/16 collision box (SoulSandBlock.java:22-24). Leaves report
+     * an empty support shape but a full collision box, and landing on a canopy is intended, so the collision face counts
+     * too. Magma is the one full block that hurts to stand on (MagmaBlock.java:9-17); cactus, cobweb, powder snow and
+     * the fluids fail both shape tests.
+     */
+    static boolean isSafeLandingBlock(BlockGetter level, BlockPos pos, boolean allowNetherBricks) {
+        BlockState state = level.getBlockState(pos);
+        if (state.is(Blocks.NETHER_BRICKS) && !allowNetherBricks) {
+            return false;
+        }
+        return state.getFluidState().isEmpty()
+                && !(state.getBlock() instanceof MagmaBlock)
+                && (state.isFaceSturdy(level, pos, Direction.UP)
+                    || Block.isFaceFull(state.getCollisionShape(level, pos), Direction.UP));
     }
 
     private boolean isSafeBlock(BlockPos pos) {
-        return isSafeBlock(ctx.world().getBlockState(pos).getBlock());
+        return isSafeLandingBlock(ctx.world(), pos, Baritone.settings().elytraAllowLandOnNetherFortress.value);
     }
 
     private boolean isAtEdge(BlockPos pos) {
@@ -667,14 +684,14 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
                 return null;
             }
             checkedSpots.add(mut.asLong());
-            Block block = ctx.world().getBlockState(mut).getBlock();
+            BlockState state = ctx.world().getBlockState(mut);
 
-            if (isSafeBlock(block)) {
+            if (isSafeBlock(mut)) {
                 if (!isAtEdge(mut)) {
                     return new BetterBlockPos(mut);
                 }
                 return null;
-            } else if (block != Blocks.AIR) {
+            } else if (!state.isAir()) {
                 return null;
             }
             mut.set(mut.getX(), mut.getY() - 1, mut.getZ());
