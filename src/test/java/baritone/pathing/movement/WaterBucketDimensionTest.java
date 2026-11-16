@@ -32,10 +32,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * A water bucket is useless where water evaporates: BucketItem#emptyContents (BucketItem.java:120) turns the placed
- * water into smoke in a dimension whose type is ultraWarm. Baritone asked {@code Level#dimension() == Level.NETHER}
- * instead, which is right only for the vanilla Nether: a datapack dimension that evaporates water but is not the
- * Nether still got the bucket, and a Nether clone that does not evaporate lost it.
+ * A water bucket is useless where water evaporates: BucketItem#emptyContents turns the placed water into smoke in a
+ * dimension whose type is ultraWarm.
  */
 public class WaterBucketDimensionTest {
 
