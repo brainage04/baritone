@@ -270,7 +270,7 @@ public class MovementParkour extends Movement {
             MovementHelper.moveTowards(ctx, state, dest);
         } else {
             // Correct landing position with movement inputs, not a camera reversal past its center.
-            MovementHelper.moveTowardsWithSlightRotation(ctx, state, dest);
+            MovementHelper.moveTowardsWithNearestInput(ctx, state, dest);
             if (!state.getInputStates().getOrDefault(Input.MOVE_FORWARD, false)) {
                 state.setInput(Input.SPRINT, false);
             }
@@ -315,9 +315,9 @@ public class MovementParkour extends Movement {
             } else if (!ctx.playerFeet().equals(dest.relative(direction, -1))) {
                 state.setInput(Input.SPRINT, false);
                 if (ctx.playerFeet().equals(src.relative(direction, -1))) {
-                    MovementHelper.moveTowardsWithSlightRotation(ctx, state, src);
+                    MovementHelper.moveTowardsWithNearestInput(ctx, state, src);
                 } else {
-                    MovementHelper.moveTowardsWithSlightRotation(ctx, state, src.relative(direction, -1));
+                    MovementHelper.moveTowardsWithNearestInput(ctx, state, src.relative(direction, -1));
                 }
             }
         }

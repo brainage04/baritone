@@ -692,21 +692,30 @@ public interface MovementHelper extends ActionCosts, Helper {
         moveTowardsWithoutRotation(ctx, state, idealYaw);
     }
 
-    static void moveTowardsWithSlightRotation(IPlayerContext ctx, MovementState state, BlockPos dest) {
-        float idealYaw = RotationUtils.calcRotationFromVec3d(
-                ctx.playerHead(),
-                VecUtils.getBlockPosCenter(dest),
-                ctx.playerRotations()
-        ).getYaw();
-        float distance = Rotation.yawDistanceFromOffset(ctx.playerRotations().getYaw(), idealYaw) % 45f;
-        float newYaw = distance > 0f ?
-                distance > 22.5f ? distance - 45f : distance :
-                distance < -22.5f ? distance + 45f : distance;
-        state.setTarget(new MovementTarget(new Rotation(
-                ctx.playerRotations().getYaw() - newYaw,
-                ctx.playerRotations().getPitch()
-        ), true));
-        moveTowardsWithoutRotation(ctx, state, idealYaw);
+    /**
+     * Looks at {@code dest} and walks with the 8-way input nearest that look.
+     * <p>
+     * The camera used to be snapped to the 45-degree grid nearest the <em>current</em> yaw, which
+     * left it up to 45 degrees off the target whenever the player stood off the block centre: the
+     * camera swung away from the target and back, and the walk went 45 degrees wide. Aiming at the
+     * target keeps the look on it and lets the input selection do the quantising.
+     */
+    static void moveTowardsWithNearestInput(IPlayerContext ctx, MovementState state, BlockPos dest) {
+        Rotation look = lookTowards(ctx.playerHead(), VecUtils.getBlockPosCenter(dest), ctx.playerRotations());
+        state.setTarget(new MovementTarget(look, true));
+        moveTowardsWithoutRotation(ctx, state, look.getYaw());
+    }
+
+    /**
+     * The rotation that points from {@code head} at {@code dest}, keeping the current pitch.
+     * <p>
+     * Split out of {@link #moveTowardsWithNearestInput} so the aim can be checked without a client.
+     */
+    static Rotation lookTowards(Vec3 head, Vec3 dest, Rotation current) {
+        return new Rotation(
+                RotationUtils.calcRotationFromVec3d(head, dest, current).getYaw(),
+                current.getPitch()
+        );
     }
 
     /**
