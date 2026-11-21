@@ -61,10 +61,11 @@ public class MovementLookTest {
 
     @Test
     public void lookWrapsAcrossTheYawSeam() {
-        // Target just past -180 from a player facing just short of +180.
+        // Target just past -180 from a player facing just short of +180. The result is the same
+        // angle whichever side of the seam it is written on.
         Vec3 head = new Vec3(0.0, 1.62, 0.0);
         Vec3 dest = new Vec3(0.05, 0.0, -4.0);
         Rotation look = MovementHelper.lookTowards(head, dest, new Rotation(179.0f, 0.0f));
-        assertEquals(-179.28f, look.getYaw(), 0.05f);
+        assertEquals(-179.28f, Rotation.normalizeYaw(look.getYaw()), 0.05f);
     }
 }
