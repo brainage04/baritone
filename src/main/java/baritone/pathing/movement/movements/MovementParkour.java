@@ -269,7 +269,7 @@ public class MovementParkour extends Movement {
         if (ctx.player().onGround() && ctx.playerFeet().equals(src)) {
             MovementHelper.moveTowards(ctx, state, dest);
         } else {
-            // Correct landing position with movement inputs, not a camera reversal past its center.
+            // Correct the landing with movement inputs while the camera stays on the landing block.
             MovementHelper.moveTowardsWithNearestInput(ctx, state, dest);
             if (!state.getInputStates().getOrDefault(Input.MOVE_FORWARD, false)) {
                 state.setInput(Input.SPRINT, false);

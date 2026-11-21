@@ -692,14 +692,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         moveTowardsWithoutRotation(ctx, state, idealYaw);
     }
 
-    /**
-     * Looks at {@code dest} and walks with the 8-way input nearest that look.
-     * <p>
-     * The camera used to be snapped to the 45-degree grid nearest the <em>current</em> yaw, which
-     * left it up to 45 degrees off the target whenever the player stood off the block centre: the
-     * camera swung away from the target and back, and the walk went 45 degrees wide. Aiming at the
-     * target keeps the look on it and lets the input selection do the quantising.
-     */
+    /** Looks at {@code dest} and walks with the 8-way input nearest that look. */
     static void moveTowardsWithNearestInput(IPlayerContext ctx, MovementState state, BlockPos dest) {
         Rotation look = lookTowards(ctx.playerHead(), VecUtils.getBlockPosCenter(dest), ctx.playerRotations());
         state.setTarget(new MovementTarget(look, true));
@@ -709,9 +702,16 @@ public interface MovementHelper extends ActionCosts, Helper {
     /**
      * The rotation that points from {@code head} at {@code dest}, keeping the current pitch.
      * <p>
-     * Split out of {@link #moveTowardsWithNearestInput} so the aim can be checked without a client.
+     * Directly above or below {@code dest} the horizontal offset is zero and the yaw is undefined;
+     * the current yaw is kept there, because the sign of a near-zero offset flips as the player
+     * crosses the centre and would swing the camera 180 degrees mid-jump.
      */
     static Rotation lookTowards(Vec3 head, Vec3 dest, Rotation current) {
+        double dx = dest.x - head.x;
+        double dz = dest.z - head.z;
+        if (dx * dx + dz * dz < 0.01) {
+            return new Rotation(current.getYaw(), current.getPitch());
+        }
         return new Rotation(
                 RotationUtils.calcRotationFromVec3d(head, dest, current).getYaw(),
                 current.getPitch()

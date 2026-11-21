@@ -23,11 +23,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-/**
- * The walk look must point at the block the movement is heading for. It used to be snapped to the
- * 45-degree grid nearest the current yaw, which pointed the camera up to 45 degrees away from the
- * target and swung it back and forth while the player walked.
- */
+/** The walk look must point at the block the movement is heading for. */
 public class MovementLookTest {
 
     private static final float EPSILON = 0.01f;
@@ -51,12 +47,24 @@ public class MovementLookTest {
 
     @Test
     public void lookIsNotSnappedToTheFortyFiveDegreeGrid() {
-        // A target 30 degrees off the current yaw: the old code aimed at 0 or 45, never at 30.
+        // A target 30 degrees off the current yaw. The 45-degree snap aimed at -15 here, the grid
+        // point nearest the current yaw, not at the target.
         Vec3 head = new Vec3(0.0, 1.62, 0.0);
         double radians = Math.toRadians(30.0);
         Vec3 dest = new Vec3(-Math.sin(radians) * 4.0, 0.0, Math.cos(radians) * 4.0);
         Rotation look = MovementHelper.lookTowards(head, dest, new Rotation(0.0f, 0.0f));
         assertEquals(30.0f, look.getYaw(), 0.05f);
+    }
+
+    @Test
+    public void lookKeepsTheCurrentYawDirectlyAboveTheTarget() {
+        // The horizontal offset is zero, so the yaw is undefined. Keeping the current yaw stops the
+        // camera swinging 180 degrees as the player crosses the centre of the block below.
+        Vec3 head = new Vec3(0.5, 3.0, 0.5);
+        Vec3 dest = new Vec3(0.5, 0.0, 0.5);
+        Rotation look = MovementHelper.lookTowards(head, dest, new Rotation(37.0f, -20.0f));
+        assertEquals(37.0f, look.getYaw(), EPSILON);
+        assertEquals(-20.0f, look.getPitch(), EPSILON);
     }
 
     @Test
