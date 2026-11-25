@@ -62,4 +62,20 @@ public class ToolSetBreakSpeedTest {
         assertEquals(8.1E-4, ToolSet.playerSpeedMultiplier(false, 0, 3, 1.0F), EPSILON);
         assertEquals(8.1E-4, ToolSet.playerSpeedMultiplier(false, 0, 9, 1.0F), EPSILON);
     }
+
+    /**
+     * SUBMERGED_MINING_SPEED while the eye is in water, then /5 while not on the ground (Player.java:617-623 in
+     * 1.21.11), independently: a player afloat at the surface is airborne with its eye out of the water, and one
+     * swimming under it is both.
+     */
+    @Test
+    public void standingFactorsApplyIndependently() {
+        assertEquals(1.0, ToolSet.standingMultiplier(false, true, 0.2), EPSILON);
+        assertEquals(0.2, ToolSet.standingMultiplier(true, true, 0.2), EPSILON);
+        assertEquals(0.2, ToolSet.standingMultiplier(false, false, 0.2), EPSILON);
+        assertEquals(0.04, ToolSet.standingMultiplier(true, false, 0.2), EPSILON);
+        // the attribute is a datapack's to change; the airborne divisor is the game's own constant
+        assertEquals(0.5, ToolSet.standingMultiplier(true, true, 0.5), EPSILON);
+        assertEquals(0.1, ToolSet.standingMultiplier(true, false, 0.5), EPSILON);
+    }
 }

@@ -623,9 +623,10 @@ public interface MovementHelper extends ActionCosts, Helper {
         if (context.miningOwner != Thread.currentThread()) {
             return getMiningDurationTicks0(context, standX, standY, standZ, x, y, z, state, includeFalling);
         }
-        boolean submerged = eyeInWater(context, standX, standY, standZ);
-        int question = (includeFalling ? CalculationContext.MINING_QUESTION_FALLING : 0) | (submerged ? CalculationContext.MINING_QUESTION_SUBMERGED : 0);
-        // the tables for mining under water are made on first use
+        int question = (includeFalling ? CalculationContext.MINING_QUESTION_FALLING : 0)
+                | (eyeInWater(context, standX, standY, standZ) ? CalculationContext.MINING_QUESTION_SUBMERGED : 0)
+                | (onGroundAt(context, standX, standY, standZ) ? 0 : CalculationContext.MINING_QUESTION_AIRBORNE);
+        // the tables for mining under water or off the ground are made on first use
         context.claimMiningTable(question);
         long[] keys = context.miningKeys[question];
         // y is shifted so it's never negative, which means the all ones key would need y=4095. no
@@ -654,7 +655,7 @@ public interface MovementHelper extends ActionCosts, Helper {
             if (avoidBreaking(context, x, y, z, state)) {
                 return COST_INF;
             }
-            double strVsBlock = context.toolSet.getStrVsBlock(state, eyeInWater(context, standX, standY, standZ));
+            double strVsBlock = context.toolSet.getStrVsBlock(state, eyeInWater(context, standX, standY, standZ), onGroundAt(context, standX, standY, standZ));
             if (strVsBlock <= 0) {
                 return COST_INF;
             }
@@ -670,6 +671,15 @@ public interface MovementHelper extends ActionCosts, Helper {
             return result;
         }
         return 0; // we won't actually mine it, so don't check fallings above
+    }
+
+    /**
+     * Whether a player standing with its feet at (x, y, z) is on the ground, which is what keeps the game from slowing
+     * its mining to a fifth ({@code Player#getDestroySpeed}, Player.java:621-623 in 1.21.11). It is on the ground when
+     * the block under its feet can be walked on; a player afloat in water, over water, has nothing under it.
+     */
+    static boolean onGroundAt(CalculationContext context, int x, int y, int z) {
+        return canWalkOn(context, x, y - 1, z);
     }
 
     /**

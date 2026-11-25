@@ -94,13 +94,15 @@ public class CalculationContext {
     // memo for getMiningDurationTicks by position
     // the block under you gets its break cost worked out by four descends, a downward, and then all your neighbours' descends
     // and every one of those reads five more blocks for avoidBreaking. the answer doesn't change mid search so just remember it
-    // one table per question: includeFalling is part of it, and so is whether the player's eye is under water where it
-    // stands to mine (the game breaks blocks five times slower then, so the cost differs)
+    // one table per question: includeFalling is part of it, and so are whether the player's eye is under water where it
+    // stands to mine and whether it stands on the ground there (the game breaks blocks five times slower for each, so
+    // the cost differs)
     // only exists while a search has claimed it, see claimSearchCaches
     public static final int MINING_CACHE_BITS = 16;
     static final int MINING_QUESTION_FALLING = 1;
     static final int MINING_QUESTION_SUBMERGED = 2;
-    static final int MINING_QUESTIONS = 4;
+    static final int MINING_QUESTION_AIRBORNE = 4;
+    static final int MINING_QUESTIONS = 8;
     long[][] miningKeys;
     double[][] miningVals;
     Thread miningOwner;
@@ -213,8 +215,8 @@ public class CalculationContext {
         }
         miningKeys = new long[MINING_QUESTIONS][];
         miningVals = new double[MINING_QUESTIONS][];
-        // the tables for mining under water are made when the search first asks, so a search that never mines under
-        // water doesn't pay for them
+        // the tables for mining under water or off the ground are made when the search first asks, so a search that
+        // never does doesn't pay for them
         claimMiningTable(0);
         claimMiningTable(MINING_QUESTION_FALLING);
         miningOwner = Thread.currentThread();

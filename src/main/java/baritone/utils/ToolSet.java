@@ -67,8 +67,14 @@ public class ToolSet {
     private final double playerMultiplier;
 
     /**
+     * The airborne divisor of {@code Player#getDestroySpeed}: a player who is not on the ground breaks blocks five
+     * times slower (Player.java:621-623 in 1.21.11).
+     */
+    public static final double AIRBORNE_MINING_DIVISOR = 5;
+
+    /**
      * SUBMERGED_MINING_SPEED, which the game applies only while the player's eye is in water, so it depends on where
-     * the player stands to mine and is applied per query in {@link #getStrVsBlock(BlockState, boolean)}.
+     * the player stands to mine and is applied per query in {@link #getStrVsBlock(BlockState, boolean, boolean)}.
      */
     private final double submergedMiningSpeed;
 
@@ -97,9 +103,9 @@ public class ToolSet {
     /**
      * The player-side factors of {@code Player#getDestroySpeed} (Player.java:732-762) that do not depend on where the
      * player stands: dig speed effects and the BLOCK_BREAK_SPEED attribute. SUBMERGED_MINING_SPEED is applied per
-     * query, because it depends on whether the eye is in water where the block is mined from. The /5 airborne penalty
-     * is left out: Baritone mines standing still, so applying it would make every cost five times too high whenever a
-     * search started on a jump tick.
+     * query, because it depends on whether the eye is in water where the block is mined from, and so is the /5
+     * airborne penalty: both are read from the stand position's surroundings, not from the player's state when the
+     * search starts, which on a jump tick would make every cost five times too high.
      */
     private static double playerSpeedMultiplier(LocalPlayer player) {
         boolean considerEffects = Baritone.settings().considerPotionEffects.value;
@@ -135,11 +141,22 @@ public class ToolSet {
      * @param state      the blockstate to be mined
      * @param eyeInWater whether the player's eye is in water where it mines the block (see
      *                   {@code MovementHelper#eyeInWater}), which the game slows to SUBMERGED_MINING_SPEED
+     * @param onGround   whether the player stands on the ground where it mines the block (see
+     *                   {@code MovementHelper#onGroundAt}), which the game does not slow
      * @return the speed of how fast we'll mine it. 1/(time in ticks)
      */
-    public double getStrVsBlock(BlockState state, boolean eyeInWater) {
+    public double getStrVsBlock(BlockState state, boolean eyeInWater, boolean onGround) {
         double speed = breakStrengthCache.computeIfAbsent(state.getBlock(), backendCalculation);
-        return eyeInWater ? speed * submergedMiningSpeed : speed;
+        return speed * standingMultiplier(eyeInWater, onGround, submergedMiningSpeed);
+    }
+
+    /**
+     * The two factors of {@code Player#getDestroySpeed} that depend on where the player stands: SUBMERGED_MINING_SPEED
+     * while the eye is in water, then /5 while not on the ground (Player.java:617-623 in 1.21.11).
+     */
+    static double standingMultiplier(boolean eyeInWater, boolean onGround, double submergedMiningSpeed) {
+        double speed = eyeInWater ? submergedMiningSpeed : 1;
+        return onGround ? speed : speed / AIRBORNE_MINING_DIVISOR;
     }
 
     /**
