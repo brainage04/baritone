@@ -25,7 +25,8 @@ import static org.junit.Assert.assertEquals;
  * The game computes break speed in {@code Player#getDestroySpeed} (Player.java:732-762): dig speed effects, then
  * BLOCK_BREAK_SPEED, then SUBMERGED_MINING_SPEED while the eye is in water, then /5 when airborne. ToolSet only knew
  * the effects, so mining with the eye under water was estimated 5x too fast and any BLOCK_BREAK_SPEED modifier was
- * invisible to the estimate.
+ * invisible to the estimate. The submerged factor depends on where the block is mined from, so it is not part of the
+ * multiplier tested here: see {@code MiningCostSubmergedTest}.
  */
 public class ToolSetBreakSpeedTest {
 
@@ -33,31 +34,20 @@ public class ToolSetBreakSpeedTest {
 
     @Test
     public void noEffectsAndNoAttributeIsUnscaled() {
-        assertEquals(1.0, ToolSet.playerSpeedMultiplier(false, 0, -1, 1.0F, false, 0.2F), EPSILON);
+        assertEquals(1.0, ToolSet.playerSpeedMultiplier(false, 0, -1, 1.0F), EPSILON);
     }
 
     @Test
     public void blockBreakSpeedAttributeScales() {
-        assertEquals(2.5, ToolSet.playerSpeedMultiplier(false, 0, -1, 2.5F, false, 0.2F), EPSILON);
+        assertEquals(2.5, ToolSet.playerSpeedMultiplier(false, 0, -1, 2.5F), EPSILON);
     }
 
     @Test
     public void digSpeedMatchesTheGame() {
         // haste I: 1 + (0 + 1) * 0.2
-        assertEquals(1.2, ToolSet.playerSpeedMultiplier(true, 0, -1, 1.0F, false, 0.2F), EPSILON);
+        assertEquals(1.2, ToolSet.playerSpeedMultiplier(true, 0, -1, 1.0F), EPSILON);
         // haste II: 1 + (1 + 1) * 0.2
-        assertEquals(1.4, ToolSet.playerSpeedMultiplier(true, 1, -1, 1.0F, false, 0.2F), EPSILON);
-    }
-
-    /**
-     * SUBMERGED_MINING_SPEED is 0.2 by default (Attributes.java:84-85), so an eye in water divides the estimate by
-     * five. It applies only while the eye is in water, and after the attribute, as in Player.java:752-755.
-     */
-    @Test
-    public void submergedMiningSpeedAppliesOnlyWithTheEyeInWater() {
-        assertEquals(1.0, ToolSet.playerSpeedMultiplier(false, 0, -1, 1.0F, false, 0.2F), EPSILON);
-        assertEquals(0.2, ToolSet.playerSpeedMultiplier(false, 0, -1, 1.0F, true, 0.2F), EPSILON);
-        assertEquals(0.5, ToolSet.playerSpeedMultiplier(false, 0, -1, 2.5F, true, 0.2F), EPSILON);
+        assertEquals(1.4, ToolSet.playerSpeedMultiplier(true, 1, -1, 1.0F), EPSILON);
     }
 
     /**
@@ -66,10 +56,10 @@ public class ToolSetBreakSpeedTest {
      */
     @Test
     public void fatigueMatchesTheGameTable() {
-        assertEquals(0.3, ToolSet.playerSpeedMultiplier(false, 0, 0, 1.0F, false, 0.2F), EPSILON);
-        assertEquals(0.09, ToolSet.playerSpeedMultiplier(false, 0, 1, 1.0F, false, 0.2F), EPSILON);
-        assertEquals(0.0027, ToolSet.playerSpeedMultiplier(false, 0, 2, 1.0F, false, 0.2F), EPSILON);
-        assertEquals(8.1E-4, ToolSet.playerSpeedMultiplier(false, 0, 3, 1.0F, false, 0.2F), EPSILON);
-        assertEquals(8.1E-4, ToolSet.playerSpeedMultiplier(false, 0, 9, 1.0F, false, 0.2F), EPSILON);
+        assertEquals(0.3, ToolSet.playerSpeedMultiplier(false, 0, 0, 1.0F), EPSILON);
+        assertEquals(0.09, ToolSet.playerSpeedMultiplier(false, 0, 1, 1.0F), EPSILON);
+        assertEquals(0.0027, ToolSet.playerSpeedMultiplier(false, 0, 2, 1.0F), EPSILON);
+        assertEquals(8.1E-4, ToolSet.playerSpeedMultiplier(false, 0, 3, 1.0F), EPSILON);
+        assertEquals(8.1E-4, ToolSet.playerSpeedMultiplier(false, 0, 9, 1.0F), EPSILON);
     }
 }

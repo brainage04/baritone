@@ -94,13 +94,15 @@ public class CalculationContext {
     // memo for getMiningDurationTicks by position
     // the block under you gets its break cost worked out by four descends, a downward, and then all your neighbours' descends
     // and every one of those reads five more blocks for avoidBreaking. the answer doesn't change mid search so just remember it
-    // two of everything because includeFalling is part of the question
+    // one table per question: includeFalling is part of it, and so is whether the player's eye is under water where it
+    // stands to mine (the game breaks blocks five times slower then, so the cost differs)
     // only exists while a search has claimed it, see claimSearchCaches
     public static final int MINING_CACHE_BITS = 16;
-    long[] miningKeys;
-    long[] miningKeysFalling;
-    double[] miningVals;
-    double[] miningValsFalling;
+    static final int MINING_QUESTION_FALLING = 1;
+    static final int MINING_QUESTION_SUBMERGED = 2;
+    static final int MINING_QUESTIONS = 4;
+    long[][] miningKeys;
+    double[][] miningVals;
     Thread miningOwner;
 
     public CalculationContext(IBaritone baritone) {
@@ -209,10 +211,12 @@ public class CalculationContext {
         if (miningOwner != null) {
             return; // somebody else is searching with this context. they keep it, we go without
         }
-        miningKeys = newMiningKeys();
-        miningKeysFalling = newMiningKeys();
-        miningVals = new double[1 << MINING_CACHE_BITS];
-        miningValsFalling = new double[1 << MINING_CACHE_BITS];
+        miningKeys = new long[MINING_QUESTIONS][];
+        miningVals = new double[MINING_QUESTIONS][];
+        // the tables for mining under water are made when the search first asks, so a search that never mines under
+        // water doesn't pay for them
+        claimMiningTable(0);
+        claimMiningTable(MINING_QUESTION_FALLING);
         miningOwner = Thread.currentThread();
         bsi.claimCache();
     }
@@ -223,17 +227,23 @@ public class CalculationContext {
         }
         miningOwner = null;
         miningKeys = null;
-        miningKeysFalling = null;
         miningVals = null;
-        miningValsFalling = null;
         bsi.releaseCache();
     }
 
-    private static long[] newMiningKeys() {
+    /**
+     * Makes the memo table for one question if it doesn't exist yet. Only the thread that owns the caches calls this,
+     * so it needs no lock.
+     */
+    void claimMiningTable(int question) {
+        if (miningKeys[question] != null) {
+            return;
+        }
         long[] keys = new long[1 << MINING_CACHE_BITS];
         // -1 is the "nothing here" key, see getMiningDurationTicks for why that's safe
         Arrays.fill(keys, -1L);
-        return keys;
+        miningKeys[question] = keys;
+        miningVals[question] = new double[1 << MINING_CACHE_BITS];
     }
 
     public final IBaritone getBaritone() {

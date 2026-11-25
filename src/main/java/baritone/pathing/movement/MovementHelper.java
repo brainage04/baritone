@@ -32,6 +32,7 @@ import baritone.utils.ToolSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -69,6 +70,11 @@ import static baritone.pathing.precompute.Ternary.*;
  * @author leijurv
  */
 public interface MovementHelper extends ActionCosts, Helper {
+
+    /**
+     * How far above its feet a standing player's eye is (EntityType.java:697 in 1.21.11).
+     */
+    float STANDING_EYE_HEIGHT = 1.62F;
 
     static boolean avoidBreaking(CalculationContext context, int x, int y, int z, BlockState state) {
         // same as the one below except the "is this block ever ok to break" bit is precomputed instead of a list scan every time
@@ -603,29 +609,40 @@ public interface MovementHelper extends ActionCosts, Helper {
             || block == Blocks.TWISTING_VINES_PLANT;
     }
 
-    static double getMiningDurationTicks(CalculationContext context, int x, int y, int z, boolean includeFalling) {
-        return getMiningDurationTicks(context, x, y, z, context.get(x, y, z), includeFalling);
+    /**
+     * How long the player takes to break the block at (x, y, z) while standing with its feet at (standX, standY,
+     * standZ). The stand position matters because the game slows a player whose eye is under water to a fifth
+     * ({@code Player#getDestroySpeed}, Player.java:617-619 in 1.21.11), and a player who has to mine a wall that rises
+     * out of a lake swims up and mines from above the surface: the cost of a block is the cost where it is mined
+     * from, not where the search started.
+     */
+    static double getMiningDurationTicks(CalculationContext context, int standX, int standY, int standZ, int x, int y, int z, boolean includeFalling) {
+        return getMiningDurationTicks(context, standX, standY, standZ, x, y, z, context.get(x, y, z), includeFalling);
     }
 
-    static double getMiningDurationTicks(CalculationContext context, int x, int y, int z, BlockState state, boolean includeFalling) {
-        long[] keys = includeFalling ? context.miningKeysFalling : context.miningKeys;
-        if (keys == null || context.miningOwner != Thread.currentThread()) {
-            return getMiningDurationTicks0(context, x, y, z, state, includeFalling);
+    static double getMiningDurationTicks(CalculationContext context, int standX, int standY, int standZ, int x, int y, int z, BlockState state, boolean includeFalling) {
+        if (context.miningOwner != Thread.currentThread()) {
+            return getMiningDurationTicks0(context, standX, standY, standZ, x, y, z, state, includeFalling);
         }
+        boolean submerged = eyeInWater(context, standX, standY, standZ);
+        int question = (includeFalling ? CalculationContext.MINING_QUESTION_FALLING : 0) | (submerged ? CalculationContext.MINING_QUESTION_SUBMERGED : 0);
+        // the tables for mining under water are made on first use
+        context.claimMiningTable(question);
+        long[] keys = context.miningKeys[question];
         // y is shifted so it's never negative, which means the all ones key would need y=4095. no
         long key = ((long) (x & 0x3FFFFFF) << 38) | ((long) (z & 0x3FFFFFF) << 12) | ((y - context.minY) & 0xFFF);
         int slot = (int) ((key * 0x9E3779B97F4A7C15L) >>> (64 - CalculationContext.MINING_CACHE_BITS));
-        double[] vals = includeFalling ? context.miningValsFalling : context.miningVals;
+        double[] vals = context.miningVals[question];
         if (keys[slot] == key) {
             return vals[slot];
         }
-        double result = getMiningDurationTicks0(context, x, y, z, state, includeFalling);
+        double result = getMiningDurationTicks0(context, standX, standY, standZ, x, y, z, state, includeFalling);
         keys[slot] = key;
         vals[slot] = result;
         return result;
     }
 
-    static double getMiningDurationTicks0(CalculationContext context, int x, int y, int z, BlockState state, boolean includeFalling) {
+    static double getMiningDurationTicks0(CalculationContext context, int standX, int standY, int standZ, int x, int y, int z, BlockState state, boolean includeFalling) {
         Block block = state.getBlock();
         if (!canWalkThrough(context, x, y, z, state)) {
             if (!state.getFluidState().isEmpty()) {
@@ -638,7 +655,7 @@ public interface MovementHelper extends ActionCosts, Helper {
             if (avoidBreaking(context, x, y, z, state)) {
                 return COST_INF;
             }
-            double strVsBlock = context.toolSet.getStrVsBlock(state);
+            double strVsBlock = context.toolSet.getStrVsBlock(state, eyeInWater(context, standX, standY, standZ));
             if (strVsBlock <= 0) {
                 return COST_INF;
             }
@@ -648,12 +665,34 @@ public interface MovementHelper extends ActionCosts, Helper {
             if (includeFalling) {
                 BlockState above = context.get(x, y + 1, z);
                 if (above.getBlock() instanceof FallingBlock) {
-                    result += getMiningDurationTicks(context, x, y + 1, z, above, true);
+                    result += getMiningDurationTicks(context, standX, standY, standZ, x, y + 1, z, above, true);
                 }
             }
             return result;
         }
         return 0; // we won't actually mine it, so don't check fallings above
+    }
+
+    /**
+     * Whether a standing player with its feet at (x, y, z) has its eye in water, which is what makes the game apply
+     * SUBMERGED_MINING_SPEED. The eye is {@link #STANDING_EYE_HEIGHT} above the feet, so it is in the block above the
+     * feet, 0.62 up it.
+     */
+    static boolean eyeInWater(CalculationContext context, int x, int y, int z) {
+        return eyeInWater(context.get(x, y + 1, z).getFluidState(), context.get(x, y + 2, z).getFluidState());
+    }
+
+    /**
+     * The test {@code Entity#updateFluidOnEyes} makes (Entity.java:1539-1556 in 1.21.11): the fluid's surface in the eye's
+     * block is above the eye. The surface of a block with the same fluid above it is the top of the block, otherwise
+     * the fluid's own height ({@code FlowingFluid#getHeight}, FlowingFluid.java:465-467).
+     */
+    static boolean eyeInWater(FluidState atEye, FluidState aboveEye) {
+        if (!atEye.is(FluidTags.WATER)) {
+            return false;
+        }
+        float surface = aboveEye.getType().isSame(atEye.getType()) ? 1.0F : atEye.getOwnHeight();
+        return surface > STANDING_EYE_HEIGHT - 1.0F;
     }
 
     static boolean isBottomSlab(BlockState state) {

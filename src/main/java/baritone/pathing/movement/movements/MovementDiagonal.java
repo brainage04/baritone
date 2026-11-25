@@ -221,8 +221,8 @@ public class MovementDiagonal extends Movement {
             res.y = y + 1;
             return;
         }
-        double optionA = MovementHelper.getMiningDurationTicks(context, x, y, destZ, pb0, false);
-        double optionB = MovementHelper.getMiningDurationTicks(context, destX, y, z, pb2, false);
+        double optionA = MovementHelper.getMiningDurationTicks(context, x, y, z, x, y, destZ, pb0, false);
+        double optionB = MovementHelper.getMiningDurationTicks(context, x, y, z, destX, y, z, pb2, false);
         optionA += isBlockingDoor(pb0, x, destZ, destX, z) ? 1 : 0;
         optionB += isBlockingDoor(pb2, destX, z, x, destZ) ? 1 : 0;
         if (optionA != 0 && optionB != 0) {
@@ -231,7 +231,7 @@ public class MovementDiagonal extends Movement {
             return;
         }
         BlockState pb1 = context.get(x, y + 1, destZ);
-        optionA += MovementHelper.getMiningDurationTicks(context, x, y + 1, destZ, pb1, true);
+        optionA += MovementHelper.getMiningDurationTicks(context, x, y, z, x, y + 1, destZ, pb1, true);
         if (optionA != 0 && optionB != 0) {
             // same deal, if pb1 makes optionA nonzero and option B already was nonzero, pb3 can't affect the result
             return;
@@ -241,7 +241,7 @@ public class MovementDiagonal extends Movement {
             // at this point we're done calculating optionA, so we can check if it's actually possible to edge around in that direction
             return;
         }
-        optionB += MovementHelper.getMiningDurationTicks(context, destX, y + 1, z, pb3, true);
+        optionB += MovementHelper.getMiningDurationTicks(context, x, y, z, destX, y + 1, z, pb3, true);
         if (optionA != 0 && optionB != 0) {
             // and finally, if the cost is nonzero for both ways to approach this diagonal, it's not possible
             return;

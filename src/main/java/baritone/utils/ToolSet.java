@@ -21,7 +21,6 @@ import baritone.Baritone;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.Holder;
-import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffectUtil;
@@ -62,10 +61,16 @@ public class ToolSet {
     private final LocalPlayer player;
 
     /**
-     * The player-side break-speed factors of {@code Player#getDestroySpeed}: dig speed effects, the BLOCK_BREAK_SPEED
-     * attribute and SUBMERGED_MINING_SPEED while the eye is in water. Read once per ToolSet.
+     * The player-side break-speed factors of {@code Player#getDestroySpeed} that do not depend on where the player
+     * stands: dig speed effects and the BLOCK_BREAK_SPEED attribute. Read once per ToolSet.
      */
     private final double playerMultiplier;
+
+    /**
+     * SUBMERGED_MINING_SPEED, which the game applies only while the player's eye is in water, so it depends on where
+     * the player stands to mine and is applied per query in {@link #getStrVsBlock(BlockState, boolean)}.
+     */
+    private final double submergedMiningSpeed;
 
     /**
      * Used for evaluating the material cost of a tool.
@@ -85,13 +90,15 @@ public class ToolSet {
         breakStrengthCache = new Object2DoubleOpenHashMap<>();
         this.player = player;
         this.playerMultiplier = playerSpeedMultiplier(player);
+        this.submergedMiningSpeed = (float) player.getAttributeValue(Attributes.SUBMERGED_MINING_SPEED);
         backendCalculation = this::getBestDestructionTime;
     }
 
     /**
-     * The player-side factors of {@code Player#getDestroySpeed} (Player.java:732-762): dig speed effects, the
-     * BLOCK_BREAK_SPEED attribute, and SUBMERGED_MINING_SPEED while the eye is in water. The /5 airborne penalty is
-     * left out: Baritone mines standing still, so applying it would make every cost five times too high whenever a
+     * The player-side factors of {@code Player#getDestroySpeed} (Player.java:732-762) that do not depend on where the
+     * player stands: dig speed effects and the BLOCK_BREAK_SPEED attribute. SUBMERGED_MINING_SPEED is applied per
+     * query, because it depends on whether the eye is in water where the block is mined from. The /5 airborne penalty
+     * is left out: Baritone mines standing still, so applying it would make every cost five times too high whenever a
      * search started on a jump tick.
      */
     private static double playerSpeedMultiplier(LocalPlayer player) {
@@ -100,13 +107,11 @@ public class ToolSet {
                 considerEffects && MobEffectUtil.hasDigSpeed(player),
                 considerEffects ? MobEffectUtil.getDigSpeedAmplification(player) : 0,
                 considerEffects && player.hasEffect(MobEffects.DIG_SLOWDOWN) ? player.getEffect(MobEffects.DIG_SLOWDOWN).getAmplifier() : -1,
-                (float) player.getAttributeValue(Attributes.BLOCK_BREAK_SPEED),
-                player.isEyeInFluid(FluidTags.WATER),
-                (float) player.getAttributeValue(Attributes.SUBMERGED_MINING_SPEED));
+                (float) player.getAttributeValue(Attributes.BLOCK_BREAK_SPEED));
     }
 
     static double playerSpeedMultiplier(boolean hasDigSpeed, int digSpeedAmplification, int fatigueAmplifier,
-                                        float blockBreakSpeed, boolean eyeInWater, float submergedMiningSpeed) {
+                                        float blockBreakSpeed) {
         double speed = 1;
         if (hasDigSpeed) {
             speed *= 1 + (digSpeedAmplification + 1) * 0.2;
@@ -121,21 +126,20 @@ public class ToolSet {
                 default -> 8.1E-4;
             };
         }
-        speed *= blockBreakSpeed;
-        if (eyeInWater) {
-            speed *= submergedMiningSpeed;
-        }
-        return speed;
+        return speed * blockBreakSpeed;
     }
 
     /**
      * Using the best tool on the hotbar, how fast we can mine this block
      *
-     * @param state the blockstate to be mined
+     * @param state      the blockstate to be mined
+     * @param eyeInWater whether the player's eye is in water where it mines the block (see
+     *                   {@code MovementHelper#eyeInWater}), which the game slows to SUBMERGED_MINING_SPEED
      * @return the speed of how fast we'll mine it. 1/(time in ticks)
      */
-    public double getStrVsBlock(BlockState state) {
-        return breakStrengthCache.computeIfAbsent(state.getBlock(), backendCalculation);
+    public double getStrVsBlock(BlockState state, boolean eyeInWater) {
+        double speed = breakStrengthCache.computeIfAbsent(state.getBlock(), backendCalculation);
+        return eyeInWater ? speed * submergedMiningSpeed : speed;
     }
 
     /**

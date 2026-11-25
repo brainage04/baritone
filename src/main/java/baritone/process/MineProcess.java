@@ -494,7 +494,8 @@ public final class MineProcess extends BaritoneProcessHelper implements IMinePro
 
     public static boolean plausibleToBreak(CalculationContext ctx, BlockPos pos) {
         BlockState state = ctx.bsi.get0(pos);
-        if (MovementHelper.getMiningDurationTicks(ctx, pos.getX(), pos.getY(), pos.getZ(), state, true) >= COST_INF) {
+        // only whether the block can be broken at all is asked here, so where the player would stand to break it doesn't matter
+        if (MovementHelper.getMiningDurationTicks(ctx, pos.getX(), pos.getY(), pos.getZ(), pos.getX(), pos.getY(), pos.getZ(), state, true) >= COST_INF) {
             return false;
         }
         if (MovementHelper.avoidBreaking(ctx.bsi, pos.getX(), pos.getY(), pos.getZ(), state)) {
