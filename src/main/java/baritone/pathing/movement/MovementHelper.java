@@ -617,12 +617,14 @@ public interface MovementHelper extends ActionCosts, Helper {
     }
 
     static double getMiningDurationTicks(CalculationContext context, int standX, int standY, int standZ, int x, int y, int z, BlockState state, boolean includeFalling) {
+        boolean submerged = eyeInWater(context, standX, standY, standZ);
+        boolean onGround = onGroundAt(context, standX, standY, standZ);
         if (context.miningOwner != Thread.currentThread()) {
-            return getMiningDurationTicks0(context, standX, standY, standZ, x, y, z, state, includeFalling);
+            return getMiningDurationTicks0(context, submerged, onGround, standX, standY, standZ, x, y, z, state, includeFalling);
         }
         int question = (includeFalling ? CalculationContext.MINING_QUESTION_FALLING : 0)
-                | (eyeInWater(context, standX, standY, standZ) ? CalculationContext.MINING_QUESTION_SUBMERGED : 0)
-                | (onGroundAt(context, standX, standY, standZ) ? 0 : CalculationContext.MINING_QUESTION_AIRBORNE);
+                | (submerged ? CalculationContext.MINING_QUESTION_SUBMERGED : 0)
+                | (onGround ? 0 : CalculationContext.MINING_QUESTION_AIRBORNE);
         // the tables for mining under water or off the ground are made on first use
         context.claimMiningTable(question);
         long[] keys = context.miningKeys[question];
@@ -633,13 +635,13 @@ public interface MovementHelper extends ActionCosts, Helper {
         if (keys[slot] == key) {
             return vals[slot];
         }
-        double result = getMiningDurationTicks0(context, standX, standY, standZ, x, y, z, state, includeFalling);
+        double result = getMiningDurationTicks0(context, submerged, onGround, standX, standY, standZ, x, y, z, state, includeFalling);
         keys[slot] = key;
         vals[slot] = result;
         return result;
     }
 
-    static double getMiningDurationTicks0(CalculationContext context, int standX, int standY, int standZ, int x, int y, int z, BlockState state, boolean includeFalling) {
+    static double getMiningDurationTicks0(CalculationContext context, boolean submerged, boolean onGround, int standX, int standY, int standZ, int x, int y, int z, BlockState state, boolean includeFalling) {
         Block block = state.getBlock();
         if (!canWalkThrough(context, x, y, z, state)) {
             if (!state.getFluidState().isEmpty()) {
@@ -652,7 +654,7 @@ public interface MovementHelper extends ActionCosts, Helper {
             if (avoidBreaking(context, x, y, z, state)) {
                 return COST_INF;
             }
-            double strVsBlock = context.toolSet.getStrVsBlock(state, eyeInWater(context, standX, standY, standZ), onGroundAt(context, standX, standY, standZ));
+            double strVsBlock = context.toolSet.getStrVsBlock(state, submerged, onGround);
             if (strVsBlock <= 0) {
                 return COST_INF;
             }
@@ -672,17 +674,16 @@ public interface MovementHelper extends ActionCosts, Helper {
 
     /**
      * Whether a player standing with its feet at (x, y, z) is on the ground, which is what keeps the game from slowing
-     * its mining to a fifth ({@code Player#getDestroySpeed}, Player.java:599-606 in 26.3). The game sets {@code
-     * onGround} only when a collision shape stops downward movement (Entity.java:792-794 in 26.3), so what counts is
+     * its mining to a fifth ({@code Player#getDestroySpeed}, Player.java:617-623 in 1.21.11). The game sets {@code
+     * onGround} only when a collision shape stops downward movement (Entity.java:787-795 in 1.21.11), so what counts is
      * a shape either cell supplies, not how Baritone can walk there: water under a swimmer is "walkable" only because
-     * the swimmer moves through it, a liquid's shape is empty outside a fluid-collision mod (LiquidBlock.java:62-67
-     * in 26.3), and ladders and vines have no collision at all (BlockBehaviour.java:322-324 in 26.3). A lily pad or
-     * carpet resting in the feet cell has a shape the player stands on (LilyPadBlock.java:20, CarpetBlock.java:15 in
-     * 26.3), so the water under it stops mattering.
+     * the swimmer moves through it, a liquid's shape is empty outside a fluid-collision mod, and ladders and vines
+     * never stop the downward movement. A lily pad or carpet resting in the feet cell has a shape the player stands
+     * on, so the water under it stops mattering.
      */
     static boolean onGroundAt(CalculationContext context, int x, int y, int z) {
         BlockState below = context.get(x, y - 1, z);
-        return isStandingSupport(context.get(x, y, z), below, canWalkOn(context, x, y - 1, z, below), context.precomputedData.settings());
+        return isStandingSupport(context.get(x, y, z), below, canWalkOn(context, x, y - 1, z, below), context.assumeWalkOnWater, context.assumeWalkOnLava);
     }
 
     /**
@@ -691,13 +692,13 @@ public interface MovementHelper extends ActionCosts, Helper {
      * answer: a swimmer the model "walks" on is not on the ground. {@code assumeWalkOnWater} and {@code
      * assumeWalkOnLava} are exactly the case where a fluid-collision mod does supply a shape, so the liquid counts.
      */
-    static boolean isStandingSupport(BlockState feet, BlockState below, boolean walkable, Settings settings) {
+    static boolean isStandingSupport(BlockState feet, BlockState below, boolean walkable, boolean walkOnWater, boolean walkOnLava) {
         if (!hasFootingShape(feet)) {
             if (!walkable) {
                 return false;
             }
             if (below.getBlock() instanceof LiquidBlock) {
-                return fluidCollisionAssumed(below, settings);
+                return fluidCollisionAssumed(below, walkOnWater, walkOnLava);
             }
             return hasFootingShape(below);
         }
@@ -707,17 +708,20 @@ public interface MovementHelper extends ActionCosts, Helper {
     /**
      * Whether the block's collision shape can hold a player up: non-empty, and not a climbable. Ladders do have a
      * collision shape (a thin plate on the wall face), but a climbing player's downward motion is never stopped by
-     * it, so vanilla mining from a ladder is airborne; vines have no shape at all.
+     * it, so vanilla mining from a ladder is airborne; vines have no shape at all. The empty-context shape is what a
+     * state carries without a world: a thin plate the player's box does not reach (an open trapdoor read as waterlog)
+     * still counts as footing, so feet in one overcount; kelp and seagrass have no shape and read airborne, which is
+     * their vanilla answer.
      */
     static boolean hasFootingShape(BlockState state) {
         return !isClimbable(state.getBlock()) && !state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty();
     }
 
-    private static boolean fluidCollisionAssumed(BlockState liquid, Settings settings) {
+    private static boolean fluidCollisionAssumed(BlockState liquid, boolean walkOnWater, boolean walkOnLava) {
         if (isWater(liquid)) {
-            return settings.assumeWalkOnWater.value;
+            return walkOnWater;
         }
-        return isLava(liquid) && settings.assumeWalkOnLava.value;
+        return isLava(liquid) && walkOnLava;
     }
 
     /**

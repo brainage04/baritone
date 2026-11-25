@@ -71,6 +71,7 @@ public class CalculationContext {
     public final boolean allowJumpAtBuildLimit;
     public final boolean allowParkourAscend;
     public final boolean assumeWalkOnWater;
+    public final boolean assumeWalkOnLava;
     public boolean allowFallIntoLava;
     public final int frostWalker;
     public final boolean allowDiagonalDescend;
@@ -155,6 +156,7 @@ public class CalculationContext {
         this.allowJumpAtBuildLimit = settings.allowJumpAtBuildLimit.value;
         this.allowParkourAscend = settings.allowParkourAscend.value;
         this.assumeWalkOnWater = settings.assumeWalkOnWater.value;
+        this.assumeWalkOnLava = settings.assumeWalkOnLava.value;
         this.allowFallIntoLava = false; // Super secret internal setting for ElytraBehavior
         this.frostWalker = frostWalker;
         this.allowDiagonalDescend = settings.allowDiagonalDescend.value;

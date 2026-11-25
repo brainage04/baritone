@@ -23,7 +23,10 @@ import baritone.pathing.precompute.PrecomputedData;
 import baritone.utils.BlockStateInterface;
 import baritone.utils.MiningCostFixture;
 import baritone.utils.ToolSet;
+import baritone.api.pathing.movement.ActionCosts;
+import baritone.pathing.movement.movements.MovementTraverse;
 import baritone.utils.pathing.BetterWorldBorder;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.block.Blocks;
@@ -102,16 +105,29 @@ public class MiningCostSubmergedTest {
     public void swimmingIsNotStandingOnTheGround() {
         // canWalkOn calls water with water above it walkable (the swimmer moves through it), but a swimming player's
         // onGround is false, so the game's /5 airborne penalty applies to what it mines from there
-        assertTrue(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.STONE.defaultBlockState(), true, SETTINGS));
-        assertFalse(MovementHelper.isStandingSupport(Blocks.WATER.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, SETTINGS));
-        assertFalse(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, SETTINGS));
-        assertFalse(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.LAVA.defaultBlockState(), true, SETTINGS));
+        assertTrue(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.STONE.defaultBlockState(), true, false, false));
+        assertFalse(MovementHelper.isStandingSupport(Blocks.WATER.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, false, false));
+        assertFalse(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, false, false));
+        assertFalse(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.LAVA.defaultBlockState(), true, false, false));
         // a lily pad or carpet in the feet cell supplies its own collision shape, so the water under it is footing after all
-        assertTrue(MovementHelper.isStandingSupport(Blocks.LILY_PAD.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, SETTINGS));
-        assertTrue(MovementHelper.isStandingSupport(Blocks.WHITE_CARPET.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, SETTINGS));
-        // ladders and vines have no collision (BlockBehaviour.java:322-324 in 26.3), so climbing is airborne even in vanilla
-        assertFalse(MovementHelper.isStandingSupport(Blocks.LADDER.defaultBlockState(), Blocks.LADDER.defaultBlockState(), true, SETTINGS));
-        assertFalse("a block that cannot be walked on is no support", MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.STONE.defaultBlockState(), false, SETTINGS));
+        assertTrue(MovementHelper.isStandingSupport(Blocks.LILY_PAD.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, false, false));
+        assertTrue(MovementHelper.isStandingSupport(Blocks.WHITE_CARPET.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, false, false));
+        // ladders and vines have no collision (BlockBehaviour.java:322-324 in 1.21.11), so climbing is airborne even in vanilla
+        assertFalse(MovementHelper.isStandingSupport(Blocks.LADDER.defaultBlockState(), Blocks.LADDER.defaultBlockState(), true, false, false));
+        assertFalse("a block that cannot be walked on is no support", MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.STONE.defaultBlockState(), false, false, false));
+    }
+
+    @Test
+    public void liquidCountsAsFootingOnlyWithTheAssumeSetting() {
+        // assumeWalkOnWater is the case where a fluid-collision mod supplies a shape for the liquid, so the liquid
+        // below then is support; without the setting the same liquid is not
+        assertTrue(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, true, false));
+        assertFalse(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, false, false));
+        assertTrue(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.LAVA.defaultBlockState(), true, false, true));
+        assertFalse(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.LAVA.defaultBlockState(), true, false, false));
+        // the other fluid's setting does not bleed across: walking on water does not make lava footing
+        assertFalse(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.LAVA.defaultBlockState(), true, true, false));
+        assertFalse(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, false, true));
     }
 
     @Test
@@ -128,6 +144,28 @@ public class MiningCostSubmergedTest {
         assertAirborneAboveWater(Blocks.BUBBLE_COLUMN.defaultBlockState());
         assertAirborneAboveWater(Blocks.LADDER.defaultBlockState());
         assertAirborneAboveWater(Blocks.VINE.defaultBlockState());
+        assertAirborneAboveWater(Blocks.KELP.defaultBlockState());
+        assertAirborneAboveWater(Blocks.SEAGRASS.defaultBlockState());
+    }
+
+    @Test
+    public void miningFromALadderColumnPaysTheAirbornePenalty() {
+        // a traverse out of a ladder column mines its way block airborne: the cost is the walk plus the airborne
+        // mining time, and nothing on top of it. Before the traverse special case went away the multiplier was
+        // 5 * (1/strength + penalty); now it is 5/strength + penalty, 8 ticks cheaper per block at the default
+        // penalty of 2. Pillar and downward mining carry the same penalty through the stand position.
+        TestBlockStateInterface bsi = new TestBlockStateInterface();
+        // the stand: feet in the bottom ladder cell (x=0, y=1), ladder below; the dest (x=1): stone at y=1 to mine,
+        // air above, stone below to walk onto
+        bsi.set(0, 0, Blocks.LADDER.defaultBlockState());
+        bsi.set(0, 1, Blocks.LADDER.defaultBlockState());
+        bsi.set(1, 0, Blocks.STONE.defaultBlockState());
+        bsi.set(1, 1, Blocks.STONE.defaultBlockState());
+        TestContext context = new TestContext(bsi, MiningCostFixture.create());
+        double cost = MovementTraverse.cost(context, 0, 1, 0, 1, 0);
+        double stoneSpeed = ToolSet.calculateSpeedVsBlock(ItemStack.EMPTY, Blocks.STONE.defaultBlockState());
+        double airborneTicks = 1 / (stoneSpeed / ToolSet.AIRBORNE_MINING_DIVISOR) + SETTINGS.blockBreakAdditionalPenalty.value;
+        assertEquals(ActionCosts.WALK_ONE_BLOCK_COST + airborneTicks, cost, 1.0E-9);
     }
 
     @Test
@@ -143,7 +181,7 @@ public class MiningCostSubmergedTest {
             // the lily pad stand at x=2: pad in the feet cell over water, so the player stands on it
             bsi.set(2, FEET_Y - 1, Blocks.WATER.defaultBlockState());
             bsi.set(2, FEET_Y, Blocks.LILY_PAD.defaultBlockState());
-            // the target at head height of both stands, within reach of neither distinction but the support
+            // the target at head height of both stands; the stands differ only in their support, not in reach
             bsi.set(1, TARGET_Y, Blocks.STONE.defaultBlockState());
             TestContext context = new TestContext(bsi, MiningCostFixture.create());
             context.claimSearchCaches();
@@ -170,11 +208,20 @@ public class MiningCostSubmergedTest {
     }
 
     private static void assertGroundedAboveWater(BlockState feet) {
-        assertEquals(isolatedMiningCost(context(Blocks.STONE.defaultBlockState())), isolatedMiningCost(context(feet)), 1.0E-9);
+        // the reference is a dry stand (air in the feet cell, stone below), not another block over water: comparing
+        // two stands over water passes even on a build that never grounds anything, because both are airborne there
+        assertEquals(isolatedMiningCost(dryGroundContext()), isolatedMiningCost(context(feet)), 1.0E-9);
+    }
+
+    private static TestContext dryGroundContext() {
+        TestBlockStateInterface bsi = new TestBlockStateInterface();
+        bsi.set(0, FEET_Y - 1, Blocks.STONE.defaultBlockState());
+        bsi.set(1, TARGET_Y, Blocks.STONE.defaultBlockState());
+        return new TestContext(bsi, MiningCostFixture.create());
     }
 
     private static void assertAirborneAboveWater(BlockState feet) {
-        TestContext onGround = context(Blocks.STONE.defaultBlockState());
+        TestContext onGround = dryGroundContext();
         double ground = isolatedMiningCost(onGround);
         double penalty = onGround.breakBlockAdditionalCost;
         assertEquals((ground - penalty) * ToolSet.AIRBORNE_MINING_DIVISOR + penalty, isolatedMiningCost(context(feet)), 1.0E-9);
