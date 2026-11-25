@@ -78,6 +78,8 @@ public class MiningCostSubmergedTest {
     @Test
     public void otherFluidsDoNotCount() {
         assertFalse(MovementHelper.eyeInWater(Fluids.LAVA.getSource(false), AIR));
-        assertEquals(1.62F, MovementHelper.STANDING_EYE_HEIGHT, 0F);
+        // the eye is in the block above the feet: the surface test compares against its height within that block
+        float eye = MovementHelper.standingEyeHeight();
+        assertTrue(eye > 1.0F && eye < 2.0F);
     }
 }

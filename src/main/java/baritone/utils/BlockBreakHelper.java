@@ -36,8 +36,9 @@ public final class BlockBreakHelper {
      * How many ticks in a row Baritone may fail to click before a break in progress is given up. A tick without a
      * click is one where the aim was off the block (see {@link BreakStreak}). Under water the player's eye moves every
      * tick, so the aim, which is one tick behind the eye, is off for a few ticks at a time: 4 in a row at most in
-     * the 300 ticks of the toolset-break-speed recording. Half a second is far longer than that and short enough
-     * that a break Baritone has moved on from is not resumed.
+     * the 300 ticks of one toolset-break-speed recording. The limit is a margin chosen over that one run, not a
+     * measured bound: half a second, long enough to cover it and short enough that a break Baritone has moved on from
+     * is not resumed.
      */
     static final int MAX_MISSED_TICKS = 10;
 

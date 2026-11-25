@@ -33,6 +33,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
@@ -69,11 +70,6 @@ import static baritone.pathing.precompute.Ternary.*;
  * @author leijurv
  */
 public interface MovementHelper extends ActionCosts, Helper {
-
-    /**
-     * How far above its feet a standing player's eye is (EntityType.java:697 in 1.21.11).
-     */
-    float STANDING_EYE_HEIGHT = 1.62F;
 
     static boolean avoidBreaking(CalculationContext context, int x, int y, int z, BlockState state) {
         // same as the one below except the "is this block ever ok to break" bit is precomputed instead of a list scan every time
@@ -684,7 +680,7 @@ public interface MovementHelper extends ActionCosts, Helper {
 
     /**
      * Whether a standing player with its feet at (x, y, z) has its eye in water, which is what makes the game apply
-     * SUBMERGED_MINING_SPEED. The eye is {@link #STANDING_EYE_HEIGHT} above the feet, so it is in the block above the
+     * SUBMERGED_MINING_SPEED. The eye is {@link #standingEyeHeight()} above the feet, so it is in the block above the
      * feet, 0.62 up it.
      */
     static boolean eyeInWater(CalculationContext context, int x, int y, int z) {
@@ -703,7 +699,15 @@ public interface MovementHelper extends ActionCosts, Helper {
             return false;
         }
         float surface = aboveEye.getType().isSame(atEye.getType()) ? 1.0F : atEye.getOwnHeight();
-        return surface > STANDING_EYE_HEIGHT - 1.0F;
+        return surface > standingEyeHeight() - 1.0F;
+    }
+
+    /**
+     * How far above its feet a standing player's eye is, from the player's own entity dimensions
+     * ({@code EntityDimensions#eyeHeight}, which {@code Entity#getEyeHeight} returns for a standing player).
+     */
+    static float standingEyeHeight() {
+        return EntityType.PLAYER.getDimensions().eyeHeight();
     }
 
     static boolean isBottomSlab(BlockState state) {
