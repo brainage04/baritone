@@ -118,10 +118,6 @@ public class MovementTraverse extends Movement {
                 }
                 return WC;
             }
-            if (MovementHelper.isClimbable(srcDownBlock)) {
-                hardness1 *= 5;
-                hardness2 *= 5;
-            }
             return WC + hardness1 + hardness2;
         } else {//this is a bridge, so we need to place a block
             if (MovementHelper.isClimbable(srcDownBlock)) {

@@ -17,9 +17,21 @@
 
 package baritone.pathing.movement;
 
+import baritone.api.Settings;
+import baritone.api.TestSettings;
+import baritone.pathing.precompute.PrecomputedData;
+import baritone.utils.BlockStateInterface;
+import baritone.utils.MiningCostFixture;
+import baritone.utils.ToolSet;
+import baritone.utils.pathing.BetterWorldBorder;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.SlabType;
+import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import org.junit.BeforeClass;
@@ -39,6 +51,7 @@ public class MiningCostSubmergedTest {
 
     // the fluids are registry objects, so they can only be read once the game has bootstrapped
     private static FluidState AIR;
+    private static Settings SETTINGS;
     private static FluidState SOURCE;
 
     @BeforeClass
@@ -47,6 +60,7 @@ public class MiningCostSubmergedTest {
         Bootstrap.bootStrap();
         AIR = Fluids.EMPTY.defaultFluidState();
         SOURCE = Fluids.WATER.getSource(false);
+        SETTINGS = TestSettings.create();
     }
 
     private static FluidState flowing(int amount) {
@@ -88,9 +102,140 @@ public class MiningCostSubmergedTest {
     public void swimmingIsNotStandingOnTheGround() {
         // canWalkOn calls water with water above it walkable (the swimmer moves through it), but a swimming player's
         // onGround is false, so the game's /5 airborne penalty applies to what it mines from there
-        assertTrue(MovementHelper.isStandingSupport(Blocks.STONE.defaultBlockState(), true));
-        assertFalse(MovementHelper.isStandingSupport(Blocks.WATER.defaultBlockState(), true));
-        assertFalse(MovementHelper.isStandingSupport(Blocks.LAVA.defaultBlockState(), true));
-        assertFalse("a block that cannot be walked on is no support", MovementHelper.isStandingSupport(Blocks.STONE.defaultBlockState(), false));
+        assertTrue(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.STONE.defaultBlockState(), true, SETTINGS));
+        assertFalse(MovementHelper.isStandingSupport(Blocks.WATER.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, SETTINGS));
+        assertFalse(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, SETTINGS));
+        assertFalse(MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.LAVA.defaultBlockState(), true, SETTINGS));
+        // a lily pad or carpet in the feet cell supplies its own collision shape, so the water under it is footing after all
+        assertTrue(MovementHelper.isStandingSupport(Blocks.LILY_PAD.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, SETTINGS));
+        assertTrue(MovementHelper.isStandingSupport(Blocks.WHITE_CARPET.defaultBlockState(), Blocks.WATER.defaultBlockState(), true, SETTINGS));
+        // ladders and vines have no collision (BlockBehaviour.java:322-324 in 26.3), so climbing is airborne even in vanilla
+        assertFalse(MovementHelper.isStandingSupport(Blocks.LADDER.defaultBlockState(), Blocks.LADDER.defaultBlockState(), true, SETTINGS));
+        assertFalse("a block that cannot be walked on is no support", MovementHelper.isStandingSupport(Blocks.AIR.defaultBlockState(), Blocks.STONE.defaultBlockState(), false, SETTINGS));
     }
-}
+
+    @Test
+    public void miningCostUsesTheSupportInTheFeetCell() {
+        assertGroundedAboveWater(Blocks.LILY_PAD.defaultBlockState());
+        assertGroundedAboveWater(Blocks.WHITE_CARPET.defaultBlockState());
+        assertGroundedAboveWater(Blocks.SMOOTH_STONE_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.TOP));
+        assertGroundedAboveWater(Blocks.OAK_STAIRS.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true));
+    }
+
+    @Test
+    public void swimmingClimbingAndBubbleColumnsHaveNoGroundSupport() {
+        assertAirborneAboveWater(Blocks.WATER.defaultBlockState());
+        assertAirborneAboveWater(Blocks.BUBBLE_COLUMN.defaultBlockState());
+        assertAirborneAboveWater(Blocks.LADDER.defaultBlockState());
+        assertAirborneAboveWater(Blocks.VINE.defaultBlockState());
+    }
+
+    @Test
+    public void miningMemoSeparatesSupportedFeetFromSwimming() {
+        // one world, one memo: the same target is mined once from a swimming stand and once from a lily pad stand
+        // beside it, in both orders. The memo keys only the target, so if the airborne bit failed to separate the
+        // tables the second query would read the first one's cost back.
+        for (boolean swimmingFirst : new boolean[]{true, false}) {
+            TestBlockStateInterface bsi = new TestBlockStateInterface();
+            // the swimming stand at x=0: feet in deep water, water below
+            bsi.set(0, FEET_Y - 1, Blocks.WATER.defaultBlockState());
+            bsi.set(0, FEET_Y, Blocks.WATER.defaultBlockState());
+            // the lily pad stand at x=2: pad in the feet cell over water, so the player stands on it
+            bsi.set(2, FEET_Y - 1, Blocks.WATER.defaultBlockState());
+            bsi.set(2, FEET_Y, Blocks.LILY_PAD.defaultBlockState());
+            // the target at head height of both stands, within reach of neither distinction but the support
+            bsi.set(1, TARGET_Y, Blocks.STONE.defaultBlockState());
+            TestContext context = new TestContext(bsi, MiningCostFixture.create());
+            context.claimSearchCaches();
+            try {
+                double first = miningCost(context, swimmingFirst ? 0 : 2);
+                double second = miningCost(context, swimmingFirst ? 2 : 0);
+                double swimCost = swimmingFirst ? first : second;
+                double padCost = swimmingFirst ? second : first;
+                TestContext ground = context(Blocks.STONE.defaultBlockState());
+                ground.claimSearchCaches();
+                double groundCost;
+                try {
+                    groundCost = miningCost(ground);
+                } finally {
+                    ground.releaseSearchCaches();
+                }
+                double penalty = context.breakBlockAdditionalCost;
+                assertEquals("supported feet cost what dry ground costs", groundCost, padCost, 1.0E-9);
+                assertEquals("a swimmer mines five times slower", (groundCost - penalty) * ToolSet.AIRBORNE_MINING_DIVISOR + penalty, swimCost, 1.0E-9);
+            } finally {
+                context.releaseSearchCaches();
+            }
+        }
+    }
+
+    private static void assertGroundedAboveWater(BlockState feet) {
+        assertEquals(isolatedMiningCost(context(Blocks.STONE.defaultBlockState())), isolatedMiningCost(context(feet)), 1.0E-9);
+    }
+
+    private static void assertAirborneAboveWater(BlockState feet) {
+        TestContext onGround = context(Blocks.STONE.defaultBlockState());
+        double ground = isolatedMiningCost(onGround);
+        double penalty = onGround.breakBlockAdditionalCost;
+        assertEquals((ground - penalty) * ToolSet.AIRBORNE_MINING_DIVISOR + penalty, isolatedMiningCost(context(feet)), 1.0E-9);
+    }
+
+
+    private static double miningCost(TestContext context) {
+        return miningCost(context, 0);
+    }
+
+    private static double miningCost(TestContext context, int standX) {
+        return MovementHelper.getMiningDurationTicks(context, standX, FEET_Y, 0, 1, TARGET_Y, 0, false);
+    }
+
+    private static double isolatedMiningCost(TestContext context) {
+        context.claimSearchCaches();
+        try {
+            return miningCost(context);
+        } finally {
+            context.releaseSearchCaches();
+        }
+    }
+
+    private static TestContext context(BlockState feet) {
+        TestBlockStateInterface bsi = new TestBlockStateInterface();
+        bsi.set(0, FEET_Y - 1, Blocks.WATER.defaultBlockState());
+        bsi.set(0, FEET_Y, feet);
+        bsi.set(1, TARGET_Y, Blocks.STONE.defaultBlockState());
+        ToolSet toolSet = MiningCostFixture.create();
+        return new TestContext(bsi, toolSet);
+    }
+
+    private static final int FEET_Y = 1;
+    private static final int TARGET_Y = 2;
+    private static final int BLOCK_HEIGHT = 8;
+
+    private static final class TestBlockStateInterface extends BlockStateInterface {
+        private static final int WIDTH = 8;
+        private final BlockState[] states = new BlockState[BLOCK_HEIGHT * WIDTH];
+
+        private TestBlockStateInterface() {
+            super(new BetterWorldBorder(new WorldBorder()), 0, BLOCK_HEIGHT);
+            java.util.Arrays.fill(states, Blocks.AIR.defaultBlockState());
+        }
+
+        private void set(int x, int y, BlockState state) {
+            states[y * WIDTH + x] = state;
+        }
+
+        @Override
+        protected BlockState getUncached(int x, int y, int z) {
+            if (x < 0 || x >= WIDTH || z != 0 || y < 0 || y >= BLOCK_HEIGHT) {
+                return Blocks.AIR.defaultBlockState();
+            }
+            return states[y * WIDTH + x];
+        }
+    }
+
+    private static final class TestContext extends CalculationContext {
+        private TestContext(TestBlockStateInterface bsi, ToolSet toolSet) {
+            super(null, false, null, null, bsi, toolSet, false, false, true, 0, 1.0F, new PrecomputedData(SETTINGS), SETTINGS);
+        }
+    }
+ }

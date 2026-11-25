@@ -19,6 +19,7 @@ package baritone.pathing.movement;
 
 import baritone.Baritone;
 import baritone.api.IBaritone;
+import baritone.api.Settings;
 import baritone.api.pathing.movement.ActionCosts;
 import baritone.cache.WorldData;
 import baritone.pathing.precompute.PrecomputedData;
@@ -130,7 +131,11 @@ public class CalculationContext {
     // everything that needs a player or a world comes in as a parameter so you can build one of these with no game running
     // all the settings get snapshotted in here so nobody can accidentally read them differently
     protected CalculationContext(IBaritone baritone, boolean forUseOnAnotherThread, Level world, WorldData worldData, BlockStateInterface bsi, ToolSet toolSet, boolean hasThrowaway, boolean hasWaterBucket, boolean canSprint, int frostWalker, float waterSpeedMultiplier) {
-        this.precomputedData = PrecomputedData.forCurrentSettings();
+        this(baritone, forUseOnAnotherThread, world, worldData, bsi, toolSet, hasThrowaway, hasWaterBucket, canSprint, frostWalker, waterSpeedMultiplier, PrecomputedData.forCurrentSettings(), Baritone.settings());
+    }
+
+    protected CalculationContext(IBaritone baritone, boolean forUseOnAnotherThread, Level world, WorldData worldData, BlockStateInterface bsi, ToolSet toolSet, boolean hasThrowaway, boolean hasWaterBucket, boolean canSprint, int frostWalker, float waterSpeedMultiplier, PrecomputedData precomputedData, Settings settings) {
+        this.precomputedData = precomputedData;
         this.safeForThreadedUse = forUseOnAnotherThread;
         this.baritone = baritone;
         this.world = world;
@@ -142,33 +147,33 @@ public class CalculationContext {
         this.canSprint = canSprint;
         this.minY = bsi.minY;
         this.maxY = bsi.maxY;
-        this.placeBlockCost = Baritone.settings().blockPlacementPenalty.value;
-        this.allowBreak = Baritone.settings().allowBreak.value;
-        this.allowBreakAnyway = new ArrayList<>(Baritone.settings().allowBreakAnyway.value);
-        this.allowParkour = Baritone.settings().allowParkour.value;
-        this.allowParkourPlace = Baritone.settings().allowParkourPlace.value;
-        this.allowJumpAtBuildLimit = Baritone.settings().allowJumpAtBuildLimit.value;
-        this.allowParkourAscend = Baritone.settings().allowParkourAscend.value;
-        this.assumeWalkOnWater = Baritone.settings().assumeWalkOnWater.value;
+        this.placeBlockCost = settings.blockPlacementPenalty.value;
+        this.allowBreak = settings.allowBreak.value;
+        this.allowBreakAnyway = new ArrayList<>(settings.allowBreakAnyway.value);
+        this.allowParkour = settings.allowParkour.value;
+        this.allowParkourPlace = settings.allowParkourPlace.value;
+        this.allowJumpAtBuildLimit = settings.allowJumpAtBuildLimit.value;
+        this.allowParkourAscend = settings.allowParkourAscend.value;
+        this.assumeWalkOnWater = settings.assumeWalkOnWater.value;
         this.allowFallIntoLava = false; // Super secret internal setting for ElytraBehavior
         this.frostWalker = frostWalker;
-        this.allowDiagonalDescend = Baritone.settings().allowDiagonalDescend.value;
-        this.allowDiagonalAscend = Baritone.settings().allowDiagonalAscend.value;
-        this.allowDownward = Baritone.settings().allowDownward.value;
+        this.allowDiagonalDescend = settings.allowDiagonalDescend.value;
+        this.allowDiagonalAscend = settings.allowDiagonalAscend.value;
+        this.allowDownward = settings.allowDownward.value;
         this.minFallHeight = 3; // Minimum fall height used by MovementFall
-        this.maxFallHeightNoWater = Baritone.settings().maxFallHeightNoWater.value;
-        this.maxFallHeightBucket = Baritone.settings().maxFallHeightBucket.value;
+        this.maxFallHeightNoWater = settings.maxFallHeightNoWater.value;
+        this.maxFallHeightBucket = settings.maxFallHeightBucket.value;
         double waterSpeed = ActionCosts.WALK_ONE_IN_WATER_COST * (1 - waterSpeedMultiplier) + ActionCosts.WALK_ONE_BLOCK_COST * waterSpeedMultiplier;
-        if (Baritone.settings().allowSwimming.value && this.canSprint) {
+        if (settings.allowSwimming.value && this.canSprint) {
             // sprint swimming beats wading on the bottom, unless depth strider is good enough to flip that
             waterSpeed = Math.min(waterSpeed, ActionCosts.SWIM_ONE_BLOCK_COST);
         }
         this.waterWalkSpeed = waterSpeed;
-        this.breakBlockAdditionalCost = Baritone.settings().blockBreakAdditionalPenalty.value;
-        this.backtrackCostFavoringCoefficient = Baritone.settings().backtrackCostFavoringCoefficient.value;
-        this.jumpPenalty = Baritone.settings().jumpPenalty.value;
-        this.walkOnWaterOnePenalty = Baritone.settings().walkOnWaterOnePenalty.value;
-        this.allowWalkOnMagmaBlocks = Baritone.settings().allowWalkOnMagmaBlocks.value;
+        this.breakBlockAdditionalCost = settings.blockBreakAdditionalPenalty.value;
+        this.backtrackCostFavoringCoefficient = settings.backtrackCostFavoringCoefficient.value;
+        this.jumpPenalty = settings.jumpPenalty.value;
+        this.walkOnWaterOnePenalty = settings.walkOnWaterOnePenalty.value;
+        this.allowWalkOnMagmaBlocks = settings.allowWalkOnMagmaBlocks.value;
         // why cache these things here, why not let the movements just get directly from settings?
         // because if some movements are calculated one way and others are calculated another way,
         // then you get a wildly inconsistent path that isn't optimal for either scenario.

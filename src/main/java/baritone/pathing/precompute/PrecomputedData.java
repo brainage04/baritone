@@ -18,6 +18,7 @@
 package baritone.pathing.precompute;
 
 import baritone.Baritone;
+import baritone.api.Settings;
 import baritone.pathing.movement.MovementHelper;
 import baritone.utils.BlockStateInterface;
 import baritone.utils.accessor.IBlockStateFlags;
@@ -66,19 +67,33 @@ public class PrecomputedData {
     private final boolean allowWalkOnMagmaBlocks;
     private final boolean allowVines;
     private final boolean assumeWalkOnLava;
+    private final boolean assumeWalkOnWater;
     private final boolean allowWalkOnBottomSlab;
     private final List<Block> blocksToAvoid;
     private final List<Block> blocksToDisallowBreaking;
+    // the one object every setting read below goes through, so a table built for a test snapshot cannot
+    // leak the game live settings into it
+    private final Settings settings;
 
     private static volatile PrecomputedData shared;
 
     public PrecomputedData() {
-        this.allowWalkOnMagmaBlocks = Baritone.settings().allowWalkOnMagmaBlocks.value;
-        this.allowVines = Baritone.settings().allowVines.value;
-        this.assumeWalkOnLava = Baritone.settings().assumeWalkOnLava.value;
-        this.allowWalkOnBottomSlab = Baritone.settings().allowWalkOnBottomSlab.value;
-        this.blocksToAvoid = new ArrayList<>(Baritone.settings().blocksToAvoid.value);
-        this.blocksToDisallowBreaking = new ArrayList<>(Baritone.settings().blocksToDisallowBreaking.value);
+        this(Baritone.settings());
+    }
+
+    public Settings settings() {
+        return settings;
+    }
+
+    public PrecomputedData(Settings settings) {
+        this.settings = settings;
+        this.allowWalkOnMagmaBlocks = settings.allowWalkOnMagmaBlocks.value;
+        this.allowVines = settings.allowVines.value;
+        this.assumeWalkOnLava = settings.assumeWalkOnLava.value;
+        this.assumeWalkOnWater = settings.assumeWalkOnWater.value;
+        this.allowWalkOnBottomSlab = settings.allowWalkOnBottomSlab.value;
+        this.blocksToAvoid = new ArrayList<>(settings.blocksToAvoid.value);
+        this.blocksToDisallowBreaking = new ArrayList<>(settings.blocksToDisallowBreaking.value);
     }
 
     // stone is still stone next search. we used to throw the whole table away every tick and
@@ -96,6 +111,7 @@ public class PrecomputedData {
         return allowWalkOnMagmaBlocks == Baritone.settings().allowWalkOnMagmaBlocks.value
                 && allowVines == Baritone.settings().allowVines.value
                 && assumeWalkOnLava == Baritone.settings().assumeWalkOnLava.value
+                && assumeWalkOnWater == Baritone.settings().assumeWalkOnWater.value
                 && allowWalkOnBottomSlab == Baritone.settings().allowWalkOnBottomSlab.value
                 && blocksToAvoid.equals(Baritone.settings().blocksToAvoid.value)
                 && blocksToDisallowBreaking.equals(Baritone.settings().blocksToDisallowBreaking.value);
@@ -104,13 +120,13 @@ public class PrecomputedData {
     private int fillData(int id, BlockState state) {
         int blockData = 0;
 
-        Ternary canWalkOnState = MovementHelper.canWalkOnBlockState(state);
+        Ternary canWalkOnState = MovementHelper.canWalkOnBlockState(state, settings);
         switch (canWalkOnState) {
             case YES -> blockData |= CAN_WALK_ON_MASK;
             case MAYBE -> blockData |= CAN_WALK_ON_MAYBE_MASK;
         }
 
-        Ternary canWalkThroughState = MovementHelper.canWalkThroughBlockState(state);
+        Ternary canWalkThroughState = MovementHelper.canWalkThroughBlockState(state, settings);
         switch (canWalkThroughState) {
             case YES -> blockData |= CAN_WALK_THROUGH_MASK;
             case MAYBE -> blockData |= CAN_WALK_THROUGH_MAYBE_MASK;
@@ -170,7 +186,7 @@ public class PrecomputedData {
     public boolean canWalkOn(BlockStateInterface bsi, int x, int y, int z, BlockState state) {
         int blockData = flags(state);
         if ((blockData & CAN_WALK_ON_MAYBE_MASK) != 0) {
-            return MovementHelper.canWalkOnPosition(bsi, x, y, z, state);
+            return MovementHelper.canWalkOnPosition(bsi, x, y, z, state, settings);
         } else {
             return (blockData & CAN_WALK_ON_MASK) != 0;
         }
@@ -179,7 +195,7 @@ public class PrecomputedData {
     public boolean canWalkThrough(BlockStateInterface bsi, int x, int y, int z, BlockState state) {
         int blockData = flags(state);
         if ((blockData & CAN_WALK_THROUGH_MAYBE_MASK) != 0) {
-            return MovementHelper.canWalkThroughPosition(bsi, x, y, z, state);
+            return MovementHelper.canWalkThroughPosition(bsi, x, y, z, state, settings);
         } else {
             return (blockData & CAN_WALK_THROUGH_MASK) != 0;
         }

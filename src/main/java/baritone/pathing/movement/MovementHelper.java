@@ -18,6 +18,7 @@
 package baritone.pathing.movement;
 
 import baritone.Baritone;
+import baritone.api.Settings;
 import baritone.api.BaritoneAPI;
 import baritone.api.IBaritone;
 import baritone.api.pathing.movement.ActionCosts;
@@ -144,17 +145,17 @@ public interface MovementHelper extends ActionCosts, Helper {
     }
 
     static boolean canWalkThrough(BlockStateInterface bsi, int x, int y, int z, BlockState state) {
-        Ternary canWalkThrough = canWalkThroughBlockState(state);
+        Ternary canWalkThrough = canWalkThroughBlockState(state, Baritone.settings());
         if (canWalkThrough == YES) {
             return true;
         }
         if (canWalkThrough == NO) {
             return false;
         }
-        return canWalkThroughPosition(bsi, x, y, z, state);
+        return canWalkThroughPosition(bsi, x, y, z, state, Baritone.settings());
     }
 
-    static Ternary canWalkThroughBlockState(BlockState state) {
+    static Ternary canWalkThroughBlockState(BlockState state, Settings settings) {
         Block block = state.getBlock();
         if (block instanceof AirBlock) {
             return YES;
@@ -168,7 +169,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         if (block == Blocks.POWDER_SNOW) {
             return NO;
         }
-        if (Baritone.settings().blocksToAvoid.value.contains(block)) {
+        if (settings.blocksToAvoid.value.contains(block)) {
             return NO;
         }
         if (block instanceof DoorBlock) {
@@ -203,7 +204,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         }
     }
 
-    static boolean canWalkThroughPosition(BlockStateInterface bsi, int x, int y, int z, BlockState state) {
+    static boolean canWalkThroughPosition(BlockStateInterface bsi, int x, int y, int z, BlockState state, Settings settings) {
         Block block = state.getBlock();
 
         if (block instanceof CarpetBlock) {
@@ -231,7 +232,7 @@ public interface MovementHelper extends ActionCosts, Helper {
                 return false;
             }
             // Everything after this point has to be a special case as it relies on the water not being flowing, which means a special case is needed.
-            if (Baritone.settings().assumeWalkOnWater.value) {
+            if (settings.assumeWalkOnWater.value) {
                 return false;
             }
 
@@ -387,25 +388,25 @@ public interface MovementHelper extends ActionCosts, Helper {
      * @return Whether or not the specified block can be walked on
      */
     static boolean canWalkOn(BlockStateInterface bsi, int x, int y, int z, BlockState state) {
-        Ternary canWalkOn = canWalkOnBlockState(state);
+        Ternary canWalkOn = canWalkOnBlockState(state, Baritone.settings());
         if (canWalkOn == YES) {
             return true;
         }
         if (canWalkOn == NO) {
             return false;
         }
-        return canWalkOnPosition(bsi, x, y, z, state);
+        return canWalkOnPosition(bsi, x, y, z, state, Baritone.settings());
     }
 
-    static Ternary canWalkOnBlockState(BlockState state) {
+    static Ternary canWalkOnBlockState(BlockState state, Settings settings) {
         Block block = state.getBlock();
-        if (isBlockNormalCube(state) && (block != Blocks.MAGMA_BLOCK || Baritone.settings().allowWalkOnMagmaBlocks.value) && block != Blocks.BUBBLE_COLUMN && block != Blocks.HONEY_BLOCK) {
+        if (isBlockNormalCube(state) && (block != Blocks.MAGMA_BLOCK || settings.allowWalkOnMagmaBlocks.value) && block != Blocks.BUBBLE_COLUMN && block != Blocks.HONEY_BLOCK) {
             return YES;
         }
         if (block instanceof AzaleaBlock) {
             return YES;
         }
-        if (block == Blocks.LADDER || (isClimbable(block) && Baritone.settings().allowVines.value)) { // TODO reconsider this
+        if (block == Blocks.LADDER || (isClimbable(block) && settings.allowVines.value)) { // TODO reconsider this
             return YES;
         }
         if (block == Blocks.FARMLAND || block == Blocks.DIRT_PATH || block == Blocks.SOUL_SAND) {
@@ -423,11 +424,11 @@ public interface MovementHelper extends ActionCosts, Helper {
         if (isWater(state) && !isWaterloggedSolidTop(state)) {
             return MAYBE;
         }
-        if (MovementHelper.isLava(state) && Baritone.settings().assumeWalkOnLava.value) {
+        if (MovementHelper.isLava(state) && settings.assumeWalkOnLava.value) {
             return MAYBE;
         }
         if (block instanceof SlabBlock) {
-            if (!Baritone.settings().allowWalkOnBottomSlab.value) {
+            if (!settings.allowWalkOnBottomSlab.value) {
                 if (state.getValue(SlabBlock.TYPE) != SlabType.BOTTOM) {
                     return YES;
                 }
@@ -438,7 +439,7 @@ public interface MovementHelper extends ActionCosts, Helper {
         return NO;
     }
 
-    static boolean canWalkOnPosition(BlockStateInterface bsi, int x, int y, int z, BlockState state) {
+    static boolean canWalkOnPosition(BlockStateInterface bsi, int x, int y, int z, BlockState state, Settings settings) {
         Block block = state.getBlock();
         if (isWater(state)) {
             // since this is called literally millions of times per second, the benefit of not allocating millions of useless "pos.up()"
@@ -450,14 +451,14 @@ public interface MovementHelper extends ActionCosts, Helper {
             }
             if (MovementHelper.isFlowing(x, y, z, state, bsi) || upState.getFluidState().getType() == Fluids.FLOWING_WATER) {
                 // the only scenario in which we can walk on flowing water is if it's under still water with jesus off
-                return isWater(upState) && !Baritone.settings().assumeWalkOnWater.value;
+                return isWater(upState) && !settings.assumeWalkOnWater.value;
             }
             // if assumeWalkOnWater is on, we can only walk on water if there isn't water above it
             // if assumeWalkOnWater is off, we can only walk on water if there is water above it
-            return isWater(upState) ^ Baritone.settings().assumeWalkOnWater.value;
+            return isWater(upState) ^ settings.assumeWalkOnWater.value;
         }
 
-        if (MovementHelper.isLava(state) && !MovementHelper.isFlowing(x, y, z, state, bsi) && Baritone.settings().assumeWalkOnLava.value) { // if we get here it means that assumeWalkOnLava must be true, so put it last
+        if (MovementHelper.isLava(state) && !MovementHelper.isFlowing(x, y, z, state, bsi) && settings.assumeWalkOnLava.value) { // if we get here it means that assumeWalkOnLava must be true, so put it last
             return true;
         }
 
@@ -671,22 +672,52 @@ public interface MovementHelper extends ActionCosts, Helper {
 
     /**
      * Whether a player standing with its feet at (x, y, z) is on the ground, which is what keeps the game from slowing
-     * its mining to a fifth ({@code Player#getDestroySpeed}, Player.java:621-623 in 1.21.11). It is on the ground when
-     * the block under its feet is something to stand on. A player swimming in water has no ground under it, even
-     * though {@link #canWalkOn} calls the water under a swimmer walkable (it can move through it), so liquid blocks
-     * do not count.
+     * its mining to a fifth ({@code Player#getDestroySpeed}, Player.java:599-606 in 26.3). The game sets {@code
+     * onGround} only when a collision shape stops downward movement (Entity.java:792-794 in 26.3), so what counts is
+     * a shape either cell supplies, not how Baritone can walk there: water under a swimmer is "walkable" only because
+     * the swimmer moves through it, a liquid's shape is empty outside a fluid-collision mod (LiquidBlock.java:62-67
+     * in 26.3), and ladders and vines have no collision at all (BlockBehaviour.java:322-324 in 26.3). A lily pad or
+     * carpet resting in the feet cell has a shape the player stands on (LilyPadBlock.java:20, CarpetBlock.java:15 in
+     * 26.3), so the water under it stops mattering.
      */
     static boolean onGroundAt(CalculationContext context, int x, int y, int z) {
         BlockState below = context.get(x, y - 1, z);
-        return isStandingSupport(below, canWalkOn(context, x, y - 1, z, below));
+        return isStandingSupport(context.get(x, y, z), below, canWalkOn(context, x, y - 1, z, below), context.precomputedData.settings());
     }
 
     /**
-     * Whether a block the path can walk on is solid footing, which is what keeps a player's {@code onGround} true:
-     * not a liquid block, however walkable Baritone's movement model finds it.
+     * Whether a player in the feet cell has anything to stand on. The cell itself may hold the footing, like a lily
+     * pad over water. Falling back to the cell under the feet is only as good as the movement model's own walkability
+     * answer: a swimmer the model "walks" on is not on the ground. {@code assumeWalkOnWater} and {@code
+     * assumeWalkOnLava} are exactly the case where a fluid-collision mod does supply a shape, so the liquid counts.
      */
-    static boolean isStandingSupport(BlockState below, boolean walkable) {
-        return walkable && !(below.getBlock() instanceof LiquidBlock);
+    static boolean isStandingSupport(BlockState feet, BlockState below, boolean walkable, Settings settings) {
+        if (!hasFootingShape(feet)) {
+            if (!walkable) {
+                return false;
+            }
+            if (below.getBlock() instanceof LiquidBlock) {
+                return fluidCollisionAssumed(below, settings);
+            }
+            return hasFootingShape(below);
+        }
+        return true;
+    }
+
+    /**
+     * Whether the block's collision shape can hold a player up: non-empty, and not a climbable. Ladders do have a
+     * collision shape (a thin plate on the wall face), but a climbing player's downward motion is never stopped by
+     * it, so vanilla mining from a ladder is airborne; vines have no shape at all.
+     */
+    static boolean hasFootingShape(BlockState state) {
+        return !isClimbable(state.getBlock()) && !state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty();
+    }
+
+    private static boolean fluidCollisionAssumed(BlockState liquid, Settings settings) {
+        if (isWater(liquid)) {
+            return settings.assumeWalkOnWater.value;
+        }
+        return isLava(liquid) && settings.assumeWalkOnLava.value;
     }
 
     /**

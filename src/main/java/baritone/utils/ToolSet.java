@@ -100,6 +100,14 @@ public class ToolSet {
         backendCalculation = this::getBestDestructionTime;
     }
 
+    ToolSet(double playerMultiplier, double submergedMiningSpeed, ToDoubleFunction<Block> backendCalculation) {
+        breakStrengthCache = new Object2DoubleOpenHashMap<>();
+        this.player = null;
+        this.playerMultiplier = playerMultiplier;
+        this.submergedMiningSpeed = submergedMiningSpeed;
+        this.backendCalculation = backendCalculation;
+    }
+
     /**
      * The player-side factors of {@code Player#getDestroySpeed} (Player.java:732-762) that do not depend on where the
      * player stands: dig speed effects and the BLOCK_BREAK_SPEED attribute. SUBMERGED_MINING_SPEED is applied per
