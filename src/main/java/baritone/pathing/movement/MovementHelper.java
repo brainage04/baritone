@@ -672,10 +672,21 @@ public interface MovementHelper extends ActionCosts, Helper {
     /**
      * Whether a player standing with its feet at (x, y, z) is on the ground, which is what keeps the game from slowing
      * its mining to a fifth ({@code Player#getDestroySpeed}, Player.java:621-623 in 1.21.11). It is on the ground when
-     * the block under its feet can be walked on; a player afloat in water, over water, has nothing under it.
+     * the block under its feet is something to stand on. A player swimming in water has no ground under it, even
+     * though {@link #canWalkOn} calls the water under a swimmer walkable (it can move through it), so liquid blocks
+     * do not count.
      */
     static boolean onGroundAt(CalculationContext context, int x, int y, int z) {
-        return canWalkOn(context, x, y - 1, z);
+        BlockState below = context.get(x, y - 1, z);
+        return isStandingSupport(below, canWalkOn(context, x, y - 1, z, below));
+    }
+
+    /**
+     * Whether a block the path can walk on is solid footing, which is what keeps a player's {@code onGround} true:
+     * not a liquid block, however walkable Baritone's movement model finds it.
+     */
+    static boolean isStandingSupport(BlockState below, boolean walkable) {
+        return walkable && !(below.getBlock() instanceof LiquidBlock);
     }
 
     /**

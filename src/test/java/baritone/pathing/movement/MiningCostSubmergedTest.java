@@ -19,6 +19,7 @@ package baritone.pathing.movement;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import org.junit.BeforeClass;
@@ -81,5 +82,15 @@ public class MiningCostSubmergedTest {
         // the eye is in the block above the feet: the surface test compares against its height within that block
         float eye = MovementHelper.standingEyeHeight();
         assertTrue(eye > 1.0F && eye < 2.0F);
+    }
+
+    @Test
+    public void swimmingIsNotStandingOnTheGround() {
+        // canWalkOn calls water with water above it walkable (the swimmer moves through it), but a swimming player's
+        // onGround is false, so the game's /5 airborne penalty applies to what it mines from there
+        assertTrue(MovementHelper.isStandingSupport(Blocks.STONE.defaultBlockState(), true));
+        assertFalse(MovementHelper.isStandingSupport(Blocks.WATER.defaultBlockState(), true));
+        assertFalse(MovementHelper.isStandingSupport(Blocks.LAVA.defaultBlockState(), true));
+        assertFalse("a block that cannot be walked on is no support", MovementHelper.isStandingSupport(Blocks.STONE.defaultBlockState(), false));
     }
 }
