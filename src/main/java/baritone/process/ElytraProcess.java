@@ -690,7 +690,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
     private BetterBlockPos findSafeLandingSpot(BetterBlockPos start) {
         final boolean useHeightmap = ctx.player().getY() > ctx.world().getHeight(Heightmap.Types.MOTION_BLOCKING, start.getX(), start.getZ());
         if (this.landingSearchState == null || !this.landingSearchState.isCompatible(start, useHeightmap)) {
-            this.landingSearchState = new LandingSearchState(start, this.behavior.destination, useHeightmap);
+            this.landingSearchState = new LandingSearchState(start, this.behavior.destinationFixed(), useHeightmap);
         } else {
             this.landingSearchState.updateStartPosition(start);
         }

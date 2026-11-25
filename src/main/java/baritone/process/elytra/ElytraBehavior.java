@@ -1362,21 +1362,28 @@ public final class ElytraBehavior implements Helper {
 
     // so we don't get stuck trying to pathfind through the roof
     private BetterBlockPos fixDestination(BetterBlockPos dst) {
-        DimensionType dimType = ctx.world().dimensionType();
+        return fixDestination(ctx.world().dimensionType(), ctx.player().getY(), dst);
+    }
+
+    public static BetterBlockPos fixDestination(DimensionType dimType, double playerY, BetterBlockPos dst) {
         if (dimType.hasCeiling()) {
             int aboveRoofY = ElytraProcess.aboveRoofY(dimType);
             int midY = dimType.minY() + dimType.logicalHeight() / 2;
-            if (ctx.player().getY() >= aboveRoofY && dst.y < aboveRoofY) {
+            if (playerY >= aboveRoofY && dst.y < aboveRoofY) {
                 return new BetterBlockPos(dst.x, aboveRoofY, dst.z);
             }
-            else if (ctx.player().getY() < aboveRoofY && dst.y >= aboveRoofY) {
+            else if (playerY < aboveRoofY && dst.y >= aboveRoofY) {
                 return new BetterBlockPos(dst.x, midY, dst.z);
             }
         }
         return dst;
     }
 
-    private BetterBlockPos destinationFixed() {
+    /**
+     * The destination the flight itself aims at: the one given, moved to the player's side of the roof. The landing
+     * search has to start from this one, because a spot on the other side of the roof cannot be reached.
+     */
+    public BetterBlockPos destinationFixed() {
         return fixDestination(this.destination);
     }
 

@@ -17,6 +17,8 @@
 
 package baritone.process;
 
+import baritone.api.utils.BetterBlockPos;
+import baritone.process.elytra.ElytraBehavior;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.Bootstrap;
@@ -80,5 +82,19 @@ public class ElytraRoofBoundsTest {
         DimensionType overworld = dimensionType(false, -64, 384, 384);
         assertTrue(ElytraProcess.isInBounds(overworld, new BlockPos(0, 200, 0), false));
         assertFalse(ElytraProcess.isInBounds(overworld, new BlockPos(0, -65, 0), false));
+    }
+
+    /**
+     * With elytraAllowAboveRoof on, a goal above the roof is accepted, and the flight moves it to the room's middle
+     * (fixDestination). The landing search started at the raw goal instead, found the roof's bedrock top as a safe
+     * block and chose a spot above it that the flight cannot reach (take 4 of the elytra-roof film: the player circled
+     * under the roof for 20 s). The search now starts from the destination the flight aims at.
+     */
+    @Test
+    public void goalAboveTheRoofIsMovedInsideForAPlayerBelowIt() {
+        DimensionType tall = dimensionType(true, 0, 256, 192);
+        assertEquals(new BetterBlockPos(110, 96, 0), ElytraBehavior.fixDestination(tall, 150, new BetterBlockPos(110, 200, 0)));
+        assertEquals("a goal inside the room stays", new BetterBlockPos(110, 120, 0), ElytraBehavior.fixDestination(tall, 150, new BetterBlockPos(110, 120, 0)));
+        assertEquals("a player above the roof keeps the goal above it", new BetterBlockPos(110, 200, 0), ElytraBehavior.fixDestination(tall, 250, new BetterBlockPos(110, 200, 0)));
     }
 }
