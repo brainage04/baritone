@@ -32,7 +32,6 @@ import baritone.utils.ToolSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
-import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -688,7 +687,9 @@ public interface MovementHelper extends ActionCosts, Helper {
      * the fluid's own height ({@code FlowingFluid#getHeight}, FlowingFluid.java:465-467).
      */
     static boolean eyeInWater(FluidState atEye, FluidState aboveEye) {
-        if (!atEye.is(FluidTags.WATER)) {
+        // the game asks the fluid tag water, which holds water and flowing water and nothing else (the same two
+        // fluids isWater(BlockState) names); a datapack can add to the tag, which the stand-position check cannot see
+        if (!atEye.getType().isSame(Fluids.WATER)) {
             return false;
         }
         float surface = aboveEye.getType().isSame(atEye.getType()) ? 1.0F : atEye.getOwnHeight();
